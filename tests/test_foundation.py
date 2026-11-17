@@ -289,6 +289,7 @@ def test_router_uses_model_per_step(cfg, monkeypatch):
             "usage": {"input_tokens": 1, "output_tokens": 1}})
 
     monkeypatch.setenv("LLM_API_KEY", "sk-test")
+    cfg.llm.provider = "claude"  # default proyek Gemini; tes ini memeriksa pembagian model Claude
     sdk = anthropic.Anthropic(api_key="sk-test", max_retries=0,
                               http_client=anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(handler)))
     llm = get_llm(cfg, sdk_client=sdk)
