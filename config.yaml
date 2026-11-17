@@ -73,6 +73,7 @@ voice:
   max_rate_percent: 25
 
 visuals:
+  # Dicoba berurutan; provider tanpa API key otomatis dilewati (cukup salah satu key).
   providers: ["pexels", "pixabay"]
   seconds_per_shot: 3.2
   max_shots_per_segment: 3

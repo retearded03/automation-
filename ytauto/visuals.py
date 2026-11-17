@@ -17,6 +17,7 @@ log = logging.getLogger("ytauto.visuals")
 PEXELS_VIDEO = "https://api.pexels.com/videos/search"
 PEXELS_PHOTO = "https://api.pexels.com/v1/search"
 PIXABAY_VIDEO = "https://pixabay.com/api/videos/"
+PIXABAY_IMAGE = "https://pixabay.com/api/"
 
 
 class VisualsError(Exception):
@@ -100,6 +101,23 @@ def pixabay_videos(query: str, api_key: str, vertical: bool, min_height: int, se
     return out
 
 
+def pixabay_photos(query: str, api_key: str, vertical: bool, session=None) -> list[Candidate]:
+    data = http.get_json(PIXABAY_IMAGE, session=session, params={
+        "key": api_key, "q": query[:100], "image_type": "photo", "safesearch": "true", "per_page": 20,
+        "orientation": "vertical" if vertical else "horizontal",
+    })
+    out = []
+    for h in data.get("hits", []):
+        url = h.get("largeImageURL") or h.get("webformatURL")
+        if not url:
+            continue
+        user = h.get("user", "Pixabay")
+        out.append(Candidate("pixabay", f"photo{h['id']}", "photo", url, h.get("imageWidth") or 0,
+                             h.get("imageHeight") or 0, 0.0, h.get("pageURL", ""), user,
+                             f"https://pixabay.com/users/{user}-{h.get('user_id', '')}/"))
+    return out
+
+
 # ---------------------------------------------------------------- pemilihan
 def choose(cands: list[Candidate], used: set[str], min_duration: float, rng: random.Random) -> Candidate | None:
     fresh = [c for c in cands if c.key not in used]
@@ -121,8 +139,12 @@ class Finder:
         self.used = set(used)
         self.rng = rng
         self.session = session
-        self.pexels_key = env("PEXELS_API_KEY", required="pexels" in config.visuals.providers)
-        self.pixabay_key = env("PIXABAY_API_KEY", required=False)
+        # Cukup salah satu key. Pexels sempat menutup pendaftaran key baru, jadi keduanya opsional.
+        providers = config.visuals.providers
+        self.pexels_key = env("PEXELS_API_KEY", required=False) if "pexels" in providers else None
+        self.pixabay_key = env("PIXABAY_API_KEY", required=False) if "pixabay" in providers else None
+        if not (self.pexels_key or self.pixabay_key):
+            raise VisualsError("isi minimal satu secret: PIXABAY_API_KEY atau PEXELS_API_KEY")
         self.vertical = config.format.vertical
         self.min_h = config.format.height if self.vertical else config.format.width
         self.min_h = min(self.min_h, 1920)
@@ -149,12 +171,20 @@ class Finder:
             if c:
                 self.used.add(c.key)
                 return c
-        if self.pexels_key:  # pilihan terakhir: foto (diberi efek zoom saat perakitan)
-            for q in queries:
-                c = choose(pexels_photos(q, self.pexels_key, self.vertical, self.session), self.used, 0, self.rng)
-                if c:
-                    self.used.add(c.key)
-                    return c
+        # pilihan terakhir: foto (diberi efek zoom saat perakitan)
+        for q in queries:
+            photos: list[Candidate] = []
+            try:
+                if self.pexels_key:
+                    photos += pexels_photos(q, self.pexels_key, self.vertical, self.session)
+                if self.pixabay_key and not [p for p in photos if p.key not in self.used]:
+                    photos += pixabay_photos(q, self.pixabay_key, self.vertical, self.session)
+            except (http.HTTPError, RetryableError) as e:
+                log.warning("pencarian foto gagal untuk %r: %s", q, e)
+            c = choose(photos, self.used, 0, self.rng)
+            if c:
+                self.used.add(c.key)
+                return c
         raise VisualsError(f"tidak ada footage untuk kata kunci {keywords}")
 
 

@@ -131,8 +131,10 @@ Repo publik paling aman dari sisi menit Actions. Secret tetap tidak terlihat ole
 | Secret | Cara mendapatkan |
 |---|---|
 | `LLM_API_KEY` | **Gemini (default):** <https://aistudio.google.com/apikey> → *Create API key*. Kalau `llm.provider: claude` di config, isi dengan API key dari <https://console.anthropic.com/> (berbayar). |
-| `PEXELS_API_KEY` | Daftar di <https://www.pexels.com/api/> → *Your API Key*. |
-| `PIXABAY_API_KEY` | *(opsional, cadangan)* Daftar di <https://pixabay.com/api/docs/>; key ada di bagian *Parameters*. |
+| `PIXABAY_API_KEY` | **Sumber footage utama.** Daftar di <https://pixabay.com/accounts/register/>, lalu buka <https://pixabay.com/api/docs/>; key ada di bagian *Parameters*. |
+| `PEXELS_API_KEY` | *(opsional)* <https://www.pexels.com/api/> → *Your API Key*. Pexels sempat menutup pendaftaran key baru; kalau kamu sudah punya key, Pexels dipakai lebih dulu karena punya lebih banyak video vertikal. |
+
+Minimal **salah satu** dari `PIXABAY_API_KEY` / `PEXELS_API_KEY` harus diisi.
 | `TELEGRAM_BOT_TOKEN` | Chat **@BotFather** di Telegram → `/newbot` → ikuti petunjuk → salin token. |
 | `TELEGRAM_CHAT_ID` | Kirim pesan apa saja ke bot kamu, lalu buka `https://api.telegram.org/bot<TOKEN>/getUpdates` di browser dan salin angka `"chat":{"id": ...}`. |
 
@@ -150,7 +152,7 @@ Isi `assets/music/` dengan musik bebas royalti, misalnya dari **YouTube Studio �
    git push -u origin main
    ```
 2. Di repo, buka **Settings → Secrets and variables → Actions → New repository secret**, lalu isi satu per satu:
-   `YT_API_KEY`, `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`, `LLM_API_KEY`, `PEXELS_API_KEY`, `PIXABAY_API_KEY` (opsional), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+   `YT_API_KEY`, `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`, `LLM_API_KEY`, `PIXABAY_API_KEY`, `PEXELS_API_KEY` (opsional), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
 3. Buka **Settings → Actions → General → Workflow permissions** dan pastikan *Read and write permissions* diizinkan. Ini dibutuhkan untuk commit `history.json`.
 4. **Run pertama (dry-run):**
    - Buka tab **Actions → Daily Shorts → Run workflow**.
@@ -168,7 +170,7 @@ pip install -r requirements-dev.txt
 python -m pytest -q               # semua tes, tanpa internet
 ```
 
-Untuk dry-run penuh di lokal, isi environment variable yang sama dengan secret (cukup `YT_API_KEY`, `LLM_API_KEY`, `PEXELS_API_KEY`), lalu jalankan:
+Untuk dry-run penuh di lokal, isi environment variable yang sama dengan secret (cukup `YT_API_KEY`, `LLM_API_KEY`, `PIXABAY_API_KEY`), lalu jalankan:
 
 ```bash
 python pipeline.py all --dry-run --count 1

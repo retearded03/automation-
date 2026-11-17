@@ -101,5 +101,36 @@ def test_no_footage_raises(cfg, keys):
     responses.add(responses.GET, visuals.PEXELS_VIDEO, json={"videos": []})
     responses.add(responses.GET, visuals.PIXABAY_VIDEO, json={"hits": []})
     responses.add(responses.GET, visuals.PEXELS_PHOTO, json={"photos": []})
+    responses.add(responses.GET, visuals.PIXABAY_IMAGE, json={"hits": []})
     with pytest.raises(visuals.VisualsError):
         visuals.Finder(cfg, set(), random.Random(0)).find(["zzz"], 3)
+
+
+@pytest.fixture
+def pixabay_only(monkeypatch):
+    monkeypatch.delenv("PEXELS_API_KEY", raising=False)
+    monkeypatch.setenv("PIXABAY_API_KEY", "XKEY")
+
+
+@responses.activate
+def test_pixabay_only_videos_then_photos(cfg, pixabay_only):
+    responses.add(responses.GET, visuals.PIXABAY_VIDEO, json={"hits": [{
+        "id": 5, "pageURL": "https://pixabay.com/videos/id-5/", "duration": 9, "user": "eve", "user_id": 2,
+        "videos": {"large": {"url": "https://cdn.pixabay.com/5.mp4", "width": 1920, "height": 1080}}}]})
+    responses.add(responses.GET, visuals.PIXABAY_IMAGE, json={"hits": [{
+        "id": 8, "pageURL": "https://pixabay.com/photos/id-8/", "user": "max", "user_id": 3,
+        "largeImageURL": "https://cdn.pixabay.com/8.jpg", "imageWidth": 1080, "imageHeight": 1920}]})
+    f = visuals.Finder(cfg, set(), random.Random(0))
+    assert f.find(["crane"], 3).key == "pixabay:5"
+    photo = f.find(["crane"], 3)  # video satu-satunya sudah terpakai -> foto Pixabay
+    assert photo.kind == "photo" and photo.key == "pixabay:photo8"
+    assert all("api.pexels.com" not in c.request.url for c in responses.calls)
+    img_call = [c for c in responses.calls if c.request.url.startswith(visuals.PIXABAY_IMAGE + "?")][0]
+    assert "orientation=vertical" in img_call.request.url
+
+
+def test_requires_at_least_one_key(cfg, monkeypatch):
+    monkeypatch.delenv("PEXELS_API_KEY", raising=False)
+    monkeypatch.delenv("PIXABAY_API_KEY", raising=False)
+    with pytest.raises(visuals.VisualsError, match="PIXABAY_API_KEY"):
+        visuals.Finder(cfg, set(), random.Random(0))
