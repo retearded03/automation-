@@ -101,6 +101,8 @@ def test_produce_script_happy_path(cfg, fake_llm):
     # sumber & gaya benar-benar dikirim ke penulis naskah
     assert "[S1] Offshore drilling" in llm.calls[0]["prompt"]
     assert "step-by-step process" in llm.calls[0]["prompt"]
+    # tiap panggilan diberi nama langkah supaya bisa diarahkan ke model berbeda
+    assert [c["step"] for c in llm.calls] == ["script_writer", "fact_check", "quality_gate"]
 
 
 @responses.activate

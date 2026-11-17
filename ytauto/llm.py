@@ -21,7 +21,11 @@ class LLMError(Exception):
 
 
 class LLM(Protocol):
-    def complete_json(self, system: str, prompt: str, temperature: float | None = None) -> Any: ...
+    def complete_json(self, system: str, prompt: str, temperature: float | None = None,
+                      step: str | None = None) -> Any: ...
+
+
+STEPS = ("topic_picker", "script_writer", "fact_check", "quality_gate")
 
 
 def render_prompt(name: str, **values: Any) -> str:
@@ -64,7 +68,8 @@ class _BaseClient:
     def _call(self, system: str, prompt: str, temperature: float) -> str:  # pragma: no cover - abstrak
         raise NotImplementedError
 
-    def complete_json(self, system: str, prompt: str, temperature: float | None = None) -> Any:
+    def complete_json(self, system: str, prompt: str, temperature: float | None = None,
+                      step: str | None = None) -> Any:
         temp = self.temperature if temperature is None else temperature
         last: Exception | None = None
         p = prompt
@@ -140,6 +145,8 @@ class ClaudeClient(_BaseClient):
     """
 
     FALLBACK_BETA = "server-side-fallback-2026-07-01"
+    # Model yang mendukung server-side fallback; Haiku 5.5 tidak (permintaan dikirim tanpa fallback)
+    FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5", "claude-opus-5", "claude-fable-5-1", "claude-fable-5-2"}
 
     def __init__(self, model: str, api_key: str, effort: str = "medium", client=None):
         super().__init__(model, api_key)
@@ -154,16 +161,18 @@ class ClaudeClient(_BaseClient):
     def _call(self, system: str, prompt: str, temperature: float) -> str:  # temperature diabaikan
         import anthropic
 
+        params = dict(
+            model=self.model,
+            max_tokens=16000,
+            system=system + "\nReply with valid JSON only, no prose before or after it.",
+            messages=[{"role": "user", "content": prompt}],
+            output_config={"effort": self.effort},
+        )
         try:
-            resp = self.client.beta.messages.create(
-                model=self.model,
-                max_tokens=16000,
-                system=system + "\nReply with valid JSON only, no prose before or after it.",
-                messages=[{"role": "user", "content": prompt}],
-                output_config={"effort": self.effort},
-                betas=[self.FALLBACK_BETA],
-                fallbacks="default",
-            )
+            if self.model in self.FALLBACK_MODELS:
+                resp = self.client.beta.messages.create(**params, betas=[self.FALLBACK_BETA], fallbacks="default")
+            else:
+                resp = self.client.messages.create(**params)
         except anthropic.AuthenticationError as e:
             raise LLMError("API key Claude ditolak: cek secret LLM_API_KEY (harus key dari console.anthropic.com)") from e
         except anthropic.APIStatusError as e:
@@ -181,9 +190,32 @@ class ClaudeClient(_BaseClient):
         return text
 
 
-def get_llm(config: Config) -> LLM:
+class StepRouter:
+    """Mengarahkan tiap langkah (topic_picker, script_writer, ...) ke klien/model miliknya."""
+
+    def __init__(self, clients: dict[str, LLM], default: LLM):
+        self.clients = clients
+        self.default = default
+
+    def for_step(self, step: str | None) -> LLM:
+        return self.clients.get(step or "", self.default)
+
+    def complete_json(self, system: str, prompt: str, temperature: float | None = None,
+                      step: str | None = None) -> Any:
+        return self.for_step(step).complete_json(system, prompt, temperature)
+
+
+def get_llm(config: Config, sdk_client=None) -> LLM:
     key = env("LLM_API_KEY")
     c = config.llm
     if c.provider == "claude":
-        return ClaudeClient(c.claude_model, key, effort=c.claude_effort)
+        if sdk_client is None:
+            import anthropic
+
+            # satu koneksi SDK dipakai bersama oleh semua langkah; SDK retry 408/409/429/5xx sendiri
+            sdk_client = anthropic.Anthropic(api_key=key, max_retries=6, timeout=600)
+        default = ClaudeClient(c.claude_model, key, effort=c.claude_effort, client=sdk_client)
+        clients = {step: ClaudeClient(s.model, key, effort=s.effort, client=sdk_client)
+                   for step, s in c.claude_steps.items()}
+        return StepRouter(clients, default)
     return GeminiClient(c.gemini_model, key, c.temperature, fallback_models=c.gemini_fallback_models)

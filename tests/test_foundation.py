@@ -271,6 +271,44 @@ def test_claude_client_real_sdk_wire_format():
     assert "server-side-fallback-2026-07-01" in seen["headers"]["anthropic-beta"]
 
 
+def test_router_uses_model_per_step(cfg, monkeypatch):
+    """Config proyek: Sonnet untuk topik & naskah, Haiku untuk cek fakta & quality gate."""
+    import anthropic
+    import httpx2
+    from ytauto.llm import get_llm
+
+    sent = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        sent.append({"model": body["model"], "effort": body["output_config"]["effort"],
+                     "fallbacks": body.get("fallbacks"), "beta": request.headers.get("anthropic-beta", "")})
+        return httpx2.Response(200, json={
+            "id": "m", "type": "message", "role": "assistant", "model": body["model"],
+            "content": [{"type": "text", "text": "{}"}], "stop_reason": "end_turn", "stop_sequence": None,
+            "usage": {"input_tokens": 1, "output_tokens": 1}})
+
+    monkeypatch.setenv("LLM_API_KEY", "sk-test")
+    sdk = anthropic.Anthropic(api_key="sk-test", max_retries=0,
+                              http_client=anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(handler)))
+    llm = get_llm(cfg, sdk_client=sdk)
+    for step in ("topic_picker", "script_writer", "fact_check", "quality_gate", None):
+        llm.complete_json("s", "p", step=step)
+    assert [s["model"] for s in sent] == ["claude-sonnet-5-5", "claude-sonnet-5-5", "claude-haiku-5-5",
+                                         "claude-haiku-5-5", "claude-sonnet-5-5"]
+    assert sent[3]["effort"] == "low"
+    # Sonnet 5.5 memakai server-side fallback; Haiku 5.5 tidak mendukungnya
+    assert sent[0]["fallbacks"] == "default" and "server-side-fallback" in sent[0]["beta"]
+    assert sent[2]["fallbacks"] is None and "server-side-fallback" not in sent[2]["beta"]
+
+
+def test_unknown_step_in_config_rejected(tmp_path):
+    p = tmp_path / "c.yaml"
+    p.write_text("llm:\n  claude_steps:\n    scriptwriter: {model: x}\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="langkah tidak dikenal"):
+        load_config(p)
+
+
 def test_claude_auth_error_message():
     import anthropic
     import httpx2

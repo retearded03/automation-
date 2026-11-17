@@ -42,8 +42,8 @@ class FakeLLM:
         self.responses = list(responses)
         self.calls = []
 
-    def complete_json(self, system, prompt, temperature=None):
-        self.calls.append({"system": system, "prompt": prompt})
+    def complete_json(self, system, prompt, temperature=None, step=None):
+        self.calls.append({"system": system, "prompt": prompt, "step": step})
         if not self.responses:
             raise AssertionError("FakeLLM kehabisan jawaban")
         r = self.responses.pop(0)

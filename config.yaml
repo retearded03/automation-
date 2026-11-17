@@ -50,9 +50,16 @@ format:
 
 llm:
   provider: "claude"                 # claude | gemini  (LLM_API_KEY harus sesuai provider)
-  # Claude: claude-opus-5-5 (kualitas terbaik), claude-sonnet-5-5 (setengah harga), claude-haiku-5-5 (termurah)
-  claude_model: "claude-opus-5-5"
-  claude_effort: "medium"            # low | medium | high | xhigh | max (lebih tinggi = lebih teliti & lebih mahal)
+  # Model per langkah. Pilihan: claude-opus-5-5 (terbaik, termahal), claude-sonnet-5-5 (seimbang),
+  # claude-haiku-5-5 (sangat murah). effort: low | medium | high | xhigh | max (lebih tinggi = lebih teliti & mahal)
+  claude_steps:
+    topic_picker:  {model: "claude-sonnet-5-5", effort: "medium"}   # 1x/hari: keamanan & orisinalitas topik
+    script_writer: {model: "claude-sonnet-5-5", effort: "medium"}   # kualitas tulisan paling menentukan
+    fact_check:    {model: "claude-haiku-5-5",  effort: "medium"}   # cocokkan klaim dengan kutipan sumber
+    quality_gate:  {model: "claude-haiku-5-5",  effort: "low"}      # beri skor naskah
+  # Dipakai untuk langkah yang tidak tercantum di atas
+  claude_model: "claude-sonnet-5-5"
+  claude_effort: "medium"
   gemini_model: "gemini-flash-latest"
   # Dipakai otomatis kalau model utama terus overload (503), kena rate limit (429), atau tidak ada (404)
   gemini_fallback_models: ["gemini-flash-lite-latest", "gemini-2.5-flash"]

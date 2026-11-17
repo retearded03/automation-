@@ -60,7 +60,7 @@ yt-autopilot/
 | YouTube `videos.list` (tren) | ±16 unit | 10.000 unit/hari |
 | YouTube `videos.insert` | 5 panggilan | **bucket tersendiri: 100 upload/hari** |
 | YouTube `thumbnails.set` | 250 unit | (masuk 10.000 unit) |
-| Claude API (`claude-opus-5-5`, effort `medium`) | ±25 request | **berbayar**: perkiraan kasar ±US$0,15–0,30 per video (±US$25–45/bulan untuk 5 video/hari); `claude-sonnet-5-5` kira-kira setengahnya. Pantau angka sebenarnya di console.anthropic.com → *Usage* |
+| Claude API (Sonnet 5.5 untuk topik & naskah, Haiku 5.5 untuk cek fakta & quality gate) | ±25 request | **berbayar**: perkiraan kasar ±US$0,03–0,05 per video (±US$5–8/bulan untuk 5 video/hari). Pantau angka sebenarnya di console.anthropic.com → *Usage* |
 | *(alternatif)* Gemini API | ±25 request | ada free tier, tetapi sering overload (503) |
 | Pexels / Pixabay | ±30–60 request | 200 req/jam / 100 req/menit |
 | GitHub Actions | ±40–60 menit | repo publik: tanpa batas · repo privat: 2.000 menit/bulan |
@@ -188,7 +188,8 @@ Hasilnya ada di `work/<run-id>/video_0/` (`final.mp4`, `thumbnail.jpg`, `script.
 | `upload.privacy_status` | `scheduled` (private + publishAt, default), `private`, `unlisted`, atau `public`. |
 | `upload.contains_synthetic_media` | `false`: footage asli + narator TTS generik yang tidak meniru orang nyata. Ubah ke `true` kalau menambahkan visual atau suara realistis buatan AI. |
 | `trends.regions` / `category_ids` | Sumber sinyal tren (US, GB, CA, AU; kategori Sains & Teknologi, Pendidikan, Otomotif). |
-| `llm.provider` / `claude_model` / `claude_effort` | `claude` (default, `claude-opus-5-5`, effort `medium`) atau `gemini` (gratis). Ganti `claude_model` ke `claude-sonnet-5-5` untuk menghemat sekitar setengah biaya. `LLM_API_KEY` harus sesuai provider. |
+| `llm.provider` | `claude` (default) atau `gemini` (gratis). `LLM_API_KEY` harus sesuai provider. |
+| `llm.claude_steps` | Model & effort **per langkah** (`topic_picker`, `script_writer`, `fact_check`, `quality_gate`). Default: Sonnet 5.5 untuk topik & naskah, Haiku 5.5 untuk cek fakta & penilaian. Naikkan `script_writer` ke `claude-opus-5-5` kalau ingin naskah lebih tajam (biaya naik ±3x). |
 | `script.min_quality_score` | Ambang quality gate (1–10). |
 | `styles.*` | Kumpulan variasi: jenis pembuka, struktur, gaya subtitle, palet, layout thumbnail. |
 

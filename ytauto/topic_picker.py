@@ -117,7 +117,8 @@ def pick_topics(config: Config, llm: LLM, trends: list[dict], history: History, 
             history="\n".join(f"- {t}" for t in history.recent_titles(150) + [a["title"] for a in accepted]) or "(none yet)",
             count=str(want - len(accepted) + 2),
         )
-        data = llm.complete_json("You are a careful, safety-minded editor. Output JSON only.", prompt)
+        data = llm.complete_json("You are a careful, safety-minded editor. Output JSON only.", prompt,
+                                 step="topic_picker")
         raw = data.get("topics", []) if isinstance(data, dict) else data
         new = validate_topics(raw or [], History(history.path, {"videos": history.videos + [
             {"topic": a["angle"], "title": a["title"]} for a in accepted]}))

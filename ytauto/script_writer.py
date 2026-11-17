@@ -147,7 +147,8 @@ def write_script(config: Config, llm: LLM, topic: dict, style: dict, sources: li
         sources=format_sources(sources),
         feedback=f"\nFEEDBACK ON THE PREVIOUS DRAFT (fix all of it):\n{feedback}\n" if feedback else "",
     )
-    raw = llm.complete_json("You are a precise science and engineering writer. Output JSON only.", prompt)
+    raw = llm.complete_json("You are a precise science and engineering writer. Output JSON only.", prompt,
+                            step="script_writer")
     return normalize_script(raw, config)
 
 
@@ -189,6 +190,7 @@ def fact_check(config: Config, llm: LLM, script: dict, sources: list[dict]) -> t
             {"segments": [{"index": i, "text": s["text"], "claims": s["claims"]} for i, s in enumerate(script["segments"])],
              "claims": script["claims"]}, ensure_ascii=False, indent=1)),
         temperature=0.0,
+        step="fact_check",
     )
     llm_claims = {str(c.get("id")): c for c in (verdict.get("claims") or [])}
     for c in script["claims"]:
@@ -227,6 +229,7 @@ def quality_gate(config: Config, llm: LLM, script: dict, recent_titles: list[str
                       recent_titles="\n".join(f"- {t}" for t in recent_titles[-30:]) or "(none)",
                       script=json.dumps({k: script[k] for k in ("title", "segments")}, ensure_ascii=False, indent=1)),
         temperature=0.2,
+        step="quality_gate",
     )
     try:
         overall = float(score.get("overall", 0))

@@ -70,12 +70,31 @@ class FormatCfg(BaseModel):
         return self.height > self.width
 
 
+Effort = Literal["low", "medium", "high", "xhigh", "max"]
+LLM_STEPS = ("topic_picker", "script_writer", "fact_check", "quality_gate")
+
+
+class StepModel(BaseModel):
+    model: str
+    effort: Effort = "medium"
+
+
 class LLMCfg(BaseModel):
     provider: Literal["gemini", "claude"] = "gemini"
     gemini_model: str = "gemini-flash-latest"
     gemini_fallback_models: list[str] = Field(default_factory=lambda: ["gemini-flash-lite-latest", "gemini-2.5-flash"])
-    claude_model: str = "claude-opus-5-5"
-    claude_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
+    # model Claude bawaan untuk langkah yang tidak diatur di claude_steps
+    claude_model: str = "claude-sonnet-5-5"
+    claude_effort: Effort = "medium"
+    claude_steps: dict[str, StepModel] = Field(default_factory=dict)
+
+    @field_validator("claude_steps")
+    @classmethod
+    def _steps(cls, v: dict) -> dict:
+        unknown = set(v) - set(LLM_STEPS)
+        if unknown:
+            raise ValueError(f"langkah tidak dikenal di llm.claude_steps: {sorted(unknown)}; pilihan: {list(LLM_STEPS)}")
+        return v
     temperature: float = 0.9
 
 
