@@ -73,6 +73,7 @@ class FormatCfg(BaseModel):
 class LLMCfg(BaseModel):
     provider: Literal["gemini", "claude"] = "gemini"
     gemini_model: str = "gemini-flash-latest"
+    gemini_fallback_models: list[str] = Field(default_factory=lambda: ["gemini-flash-lite-latest", "gemini-2.5-flash"])
     claude_model: str = "claude-haiku-5-5"
     temperature: float = 0.9
 

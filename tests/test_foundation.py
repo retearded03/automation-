@@ -161,6 +161,41 @@ def test_gemini_client():
     assert body["systemInstruction"]["parts"][0]["text"] == "sys"
 
 
+GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
+
+
+@responses.activate
+def test_gemini_falls_back_when_overloaded(no_sleep):
+    for _ in range(5):
+        responses.post(GEMINI.format("main"), status=503)
+    responses.post(GEMINI.format("lite"), status=404, json={"error": {"message": "not found"}})
+    responses.post(GEMINI.format("backup"), json={"candidates": [{"content": {"parts": [{"text": '{"ok": 1}'}]}}]})
+    c = GeminiClient("main", "KEY", fallback_models=["lite", "backup"])
+    assert c.complete_json("s", "p") == {"ok": 1}
+    assert c.model == "backup"  # panggilan berikutnya langsung ke model yang jalan
+    assert len(no_sleep) == 4 and max(no_sleep) > 4  # retry sabar sebelum pindah model
+    responses.post(GEMINI.format("backup"), json={"candidates": [{"content": {"parts": [{"text": '{"ok": 2}'}]}}]})
+    assert c.complete_json("s", "p") == {"ok": 2}
+
+
+@responses.activate
+def test_gemini_bad_key_does_not_fall_back():
+    responses.post(GEMINI.format("main"), status=403, body="API key not valid")
+    c = GeminiClient("main", "KEY", fallback_models=["backup"])
+    with pytest.raises(http.HTTPError):
+        c.complete_json("s", "p")
+    assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_gemini_all_models_fail():
+    for m in ("main", "backup"):
+        for _ in range(5):
+            responses.post(GEMINI.format(m), status=503)
+    with pytest.raises(LLMError, match="semua model"):
+        GeminiClient("main", "KEY", fallback_models=["backup"]).complete_json("s", "p")
+
+
 @responses.activate
 def test_gemini_blocked():
     responses.post(

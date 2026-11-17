@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from pathlib import Path
 from string import Template
@@ -9,7 +10,9 @@ from typing import Any, Protocol
 
 from . import http
 from .config import Config, env
+from .retry import RetryableError
 
+log = logging.getLogger("ytauto.retry")  # ikut handler log pipeline
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
 
@@ -77,6 +80,38 @@ class _BaseClient:
 
 class GeminiClient(_BaseClient):
     URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    # Overload (503) & rate limit (429) di free tier bisa berlangsung lama: retry sabar per model,
+    # lalu pindah ke model cadangan.
+    attempts_per_model = 5
+    base_delay = 4.0
+
+    def __init__(self, model: str, api_key: str, temperature: float = 0.9, session=None,
+                 fallback_models: list[str] | None = None):
+        super().__init__(model, api_key, temperature, session)
+        self.fallback_models = [m for m in (fallback_models or []) if m != model]
+
+    def _post(self, payload: dict) -> dict:
+        last: Exception | None = None
+        for model in [self.model] + self.fallback_models:
+            try:
+                data = http.post_json(
+                    self.URL.format(model=model), payload, headers={"x-goog-api-key": self.api_key},
+                    session=self.session, timeout=120, attempts=self.attempts_per_model, base_delay=self.base_delay,
+                )
+            except RetryableError as e:  # 503/429/timeout terus-menerus
+                last = e
+            except http.HTTPError as e:
+                if e.status != 404:  # 400/401/403 = key/permintaan salah; model lain tidak akan menolong
+                    raise
+                last = e  # model tidak ada / sudah dipensiunkan
+            else:
+                if model != self.model:
+                    log.warning("Gemini: pindah ke model cadangan %s", model)
+                    self.fallback_models = [m for m in self.fallback_models if m != model] + [self.model]
+                    self.model = model
+                return data
+            log.warning("Gemini model %s gagal: %s", model, last)
+        raise LLMError(f"semua model Gemini gagal; terakhir: {last}")
 
     def _call(self, system: str, prompt: str, temperature: float) -> str:
         payload = {
@@ -84,13 +119,7 @@ class GeminiClient(_BaseClient):
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": temperature, "responseMimeType": "application/json"},
         }
-        data = http.post_json(
-            self.URL.format(model=self.model),
-            payload,
-            headers={"x-goog-api-key": self.api_key},
-            session=self.session,
-            timeout=120,
-        )
+        data = self._post(payload)
         cands = data.get("candidates") or []
         if not cands:
             reason = (data.get("promptFeedback") or {}).get("blockReason", "tanpa kandidat")
@@ -131,4 +160,4 @@ def get_llm(config: Config) -> LLM:
     c = config.llm
     if c.provider == "claude":
         return ClaudeClient(c.claude_model, key, c.temperature)
-    return GeminiClient(c.gemini_model, key, c.temperature)
+    return GeminiClient(c.gemini_model, key, c.temperature, fallback_models=c.gemini_fallback_models)

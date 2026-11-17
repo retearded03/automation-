@@ -39,12 +39,13 @@ def request(
     session: requests.Session | None = None,
     attempts: int = 5,
     timeout: float = 60,
+    base_delay: float = 1.0,
     **kwargs,
 ) -> requests.Response:
     sess = session or requests
     headers = {"User-Agent": USER_AGENT, **kwargs.pop("headers", {})}
 
-    @retry(attempts=attempts, retry_on=(RetryableError,))
+    @retry(attempts=attempts, base_delay=base_delay, retry_on=(RetryableError,))
     def _do() -> requests.Response:
         try:
             resp = sess.request(method, url, headers=headers, timeout=timeout, **kwargs)
