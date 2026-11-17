@@ -60,8 +60,8 @@ yt-autopilot/
 | YouTube `videos.list` (tren) | ±16 unit | 10.000 unit/hari |
 | YouTube `videos.insert` | 5 panggilan | **bucket tersendiri: 100 upload/hari** |
 | YouTube `thumbnails.set` | 250 unit | (masuk 10.000 unit) |
-| Claude API (Sonnet 5.5 untuk topik & naskah, Haiku 5.5 untuk cek fakta & quality gate) | ±25 request | **berbayar**: perkiraan kasar ±US$0,03–0,05 per video (±US$5–8/bulan untuk 5 video/hari). Pantau angka sebenarnya di console.anthropic.com → *Usage* |
-| *(alternatif)* Gemini API | ±25 request | ada free tier, tetapi sering overload (503) |
+| Gemini API (default) | ±25 request | gratis (free tier); kadang overload (503), ditangani dengan retry + model cadangan |
+| *(opsional)* Claude API | ±25 request | berbayar: perkiraan kasar ±US$0,03–0,05 per video dengan Sonnet 5.5 + Haiku 5.5 |
 | Pexels / Pixabay | ±30–60 request | 200 req/jam / 100 req/menit |
 | GitHub Actions | ±40–60 menit | repo publik: tanpa batas · repo privat: 2.000 menit/bulan |
 
@@ -131,7 +131,7 @@ Repo publik paling aman dari sisi menit Actions. Secret tetap tidak terlihat ole
 
 | Secret | Cara mendapatkan |
 |---|---|
-| `LLM_API_KEY` | **Claude (default):** buka <https://console.anthropic.com/> → isi saldo di *Billing* → *API Keys* → *Create Key* (diawali `sk-ant-`). Kalau `llm.provider: gemini` di config, isi dengan key gratis dari <https://aistudio.google.com/apikey>. |
+| `LLM_API_KEY` | **Gemini (default, gratis):** <https://aistudio.google.com/apikey> → *Create API key*. Kalau kamu mengganti `llm.provider: claude` di config (berbayar), isi dengan key dari <https://console.anthropic.com/>. |
 | `PIXABAY_API_KEY` | **Sumber footage utama.** Daftar di <https://pixabay.com/accounts/register/>, lalu buka <https://pixabay.com/api/docs/>; key ada di bagian *Parameters*. |
 | `PEXELS_API_KEY` | *(opsional)* <https://www.pexels.com/api/> → *Your API Key*. Pexels sempat menutup pendaftaran key baru; kalau kamu sudah punya key, Pexels dipakai lebih dulu karena punya lebih banyak video vertikal. |
 

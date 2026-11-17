@@ -49,7 +49,9 @@ format:
   target_words: 135
 
 llm:
-  provider: "claude"                 # claude | gemini  (LLM_API_KEY harus sesuai provider)
+  # gemini = gratis (key dari aistudio.google.com) | claude = berbayar (key dari console.anthropic.com)
+  # LLM_API_KEY harus sesuai provider yang dipilih.
+  provider: "gemini"
   # Model per langkah. Pilihan: claude-opus-5-5 (terbaik, termahal), claude-sonnet-5-5 (seimbang),
   # claude-haiku-5-5 (sangat murah). effort: low | medium | high | xhigh | max (lebih tinggi = lebih teliti & mahal)
   claude_steps:
