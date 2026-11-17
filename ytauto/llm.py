@@ -10,6 +10,7 @@ from typing import Any, Protocol
 
 from . import http
 from .config import Config, env
+from . import retry as retry_mod
 from .retry import RetryableError
 
 log = logging.getLogger("ytauto.retry")  # ikut handler log pipeline
@@ -91,13 +92,15 @@ class GeminiClient(_BaseClient):
     base_delay = 4.0
 
     def __init__(self, model: str, api_key: str, temperature: float = 0.9, session=None,
-                 fallback_models: list[str] | None = None):
+                 fallback_models: list[str] | None = None, rounds: int = 1, round_wait: float = 90.0):
         super().__init__(model, api_key, temperature, session)
         self.fallback_models = [m for m in (fallback_models or []) if m != model]
+        self.rounds = max(1, rounds)
+        self.round_wait = round_wait
 
-    def _post(self, payload: dict) -> dict:
+    def _try_models(self, payload: dict) -> tuple[dict | None, Exception | None]:
         last: Exception | None = None
-        for model in [self.model] + self.fallback_models:
+        for model in [self.model] + list(self.fallback_models):
             try:
                 data = http.post_json(
                     self.URL.format(model=model), payload, headers={"x-goog-api-key": self.api_key},
@@ -108,15 +111,34 @@ class GeminiClient(_BaseClient):
             except http.HTTPError as e:
                 if e.status != 404:  # 400/401/403 = key/permintaan salah; model lain tidak akan menolong
                     raise
-                last = e  # model tidak ada / sudah dipensiunkan
+                last = e  # model tidak ada / sudah dipensiunkan -> jangan dicoba lagi
+                if model == self.model and self.fallback_models:
+                    self.model = self.fallback_models.pop(0)
+                else:
+                    self.fallback_models = [m for m in self.fallback_models if m != model]
+                log.warning("Gemini model %s tidak tersedia (404), dibuang dari daftar", model)
+                continue
             else:
                 if model != self.model:
                     log.warning("Gemini: pindah ke model cadangan %s", model)
                     self.fallback_models = [m for m in self.fallback_models if m != model] + [self.model]
                     self.model = model
-                return data
+                return data, None
             log.warning("Gemini model %s gagal: %s", model, last)
-        raise LLMError(f"semua model Gemini gagal; terakhir: {last}")
+        return None, last
+
+    def _post(self, payload: dict) -> dict:
+        last: Exception | None = None
+        for rnd in range(1, self.rounds + 1):
+            data, last = self._try_models(payload)
+            if data is not None:
+                return data
+            if rnd < self.rounds:
+                wait = self.round_wait * rnd
+                log.warning("semua model Gemini sibuk (putaran %d/%d); tunggu %.0f detik lalu coba lagi",
+                            rnd, self.rounds, wait)
+                retry_mod.SLEEP(wait)
+        raise LLMError(f"semua model Gemini gagal setelah {self.rounds} putaran; terakhir: {last}")
 
     def _call(self, system: str, prompt: str, temperature: float) -> str:
         payload = {
@@ -218,4 +240,5 @@ def get_llm(config: Config, sdk_client=None) -> LLM:
         clients = {step: ClaudeClient(s.model, key, effort=s.effort, client=sdk_client)
                    for step, s in c.claude_steps.items()}
         return StepRouter(clients, default)
-    return GeminiClient(c.gemini_model, key, c.temperature, fallback_models=c.gemini_fallback_models)
+    return GeminiClient(c.gemini_model, key, c.temperature, fallback_models=c.gemini_fallback_models,
+                        rounds=c.gemini_rounds, round_wait=c.gemini_round_wait)

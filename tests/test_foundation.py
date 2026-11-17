@@ -179,6 +179,20 @@ def test_gemini_falls_back_when_overloaded(no_sleep):
 
 
 @responses.activate
+def test_gemini_waits_and_retries_next_round(no_sleep):
+    for _ in range(5):
+        responses.post(GEMINI.format("main"), status=503)
+    responses.post(GEMINI.format("gone"), status=404, json={"error": {"message": "no longer available"}})
+    # putaran 2: model utama sudah pulih
+    responses.post(GEMINI.format("main"), json={"candidates": [{"content": {"parts": [{"text": '{"ok": 3}'}]}}]})
+    c = GeminiClient("main", "KEY", fallback_models=["gone"], rounds=3, round_wait=90)
+    assert c.complete_json("s", "p") == {"ok": 3}
+    assert 90 in no_sleep  # jeda antar-putaran
+    assert c.fallback_models == []  # model 404 dibuang, tidak dicoba lagi
+    assert sum("gone" in call.request.url for call in responses.calls) == 1
+
+
+@responses.activate
 def test_gemini_bad_key_does_not_fall_back():
     responses.post(GEMINI.format("main"), status=403, body="API key not valid")
     c = GeminiClient("main", "KEY", fallback_models=["backup"])

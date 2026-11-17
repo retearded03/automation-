@@ -82,7 +82,9 @@ class StepModel(BaseModel):
 class LLMCfg(BaseModel):
     provider: Literal["gemini", "claude"] = "gemini"
     gemini_model: str = "gemini-flash-latest"
-    gemini_fallback_models: list[str] = Field(default_factory=lambda: ["gemini-flash-lite-latest", "gemini-2.5-flash"])
+    gemini_fallback_models: list[str] = Field(default_factory=lambda: ["gemini-flash-lite-latest", "gemini-3.8-flash"])
+    gemini_rounds: int = Field(3, ge=1, le=6)
+    gemini_round_wait: float = Field(90, ge=0)
     # model Claude bawaan untuk langkah yang tidak diatur di claude_steps
     claude_model: str = "claude-sonnet-5-5"
     claude_effort: Effort = "medium"

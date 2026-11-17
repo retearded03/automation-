@@ -32,7 +32,7 @@ jobs:
   plan:
     name: Tren & pilih topik
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     outputs:
       indices: ${{ steps.plan.outputs.indices }}
     steps:
@@ -65,10 +65,10 @@ jobs:
     needs: plan
     if: needs.plan.outputs.indices != '' && needs.plan.outputs.indices != '[]'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 75
     strategy:
       fail-fast: false        # satu video gagal tidak menghentikan video lain
-      max-parallel: 5         # turunkan kalau LLM free tier sering kena rate limit (429)
+      max-parallel: 2         # free tier Gemini cepat overload kalau terlalu banyak request bersamaan
       matrix:
         index: ${{ fromJSON(needs.plan.outputs.indices) }}
     steps:
