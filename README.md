@@ -60,7 +60,8 @@ yt-autopilot/
 | YouTube `videos.list` (tren) | ±16 unit | 10.000 unit/hari |
 | YouTube `videos.insert` | 5 panggilan | **bucket tersendiri: 100 upload/hari** |
 | YouTube `thumbnails.set` | 250 unit | (masuk 10.000 unit) |
-| Gemini API | ±25 request | ada free tier (cek batasnya di AI Studio) |
+| Claude API (`claude-opus-5-5`, effort `medium`) | ±25 request | **berbayar**: perkiraan kasar ±US$0,15–0,30 per video (±US$25–45/bulan untuk 5 video/hari); `claude-sonnet-5-5` kira-kira setengahnya. Pantau angka sebenarnya di console.anthropic.com → *Usage* |
+| *(alternatif)* Gemini API | ±25 request | ada free tier, tetapi sering overload (503) |
 | Pexels / Pixabay | ±30–60 request | 200 req/jam / 100 req/menit |
 | GitHub Actions | ±40–60 menit | repo publik: tanpa batas · repo privat: 2.000 menit/bulan |
 
@@ -130,7 +131,7 @@ Repo publik paling aman dari sisi menit Actions. Secret tetap tidak terlihat ole
 
 | Secret | Cara mendapatkan |
 |---|---|
-| `LLM_API_KEY` | **Gemini (default):** <https://aistudio.google.com/apikey> → *Create API key*. Kalau `llm.provider: claude` di config, isi dengan API key dari <https://console.anthropic.com/> (berbayar). |
+| `LLM_API_KEY` | **Claude (default):** buka <https://console.anthropic.com/> → isi saldo di *Billing* → *API Keys* → *Create Key* (diawali `sk-ant-`). Kalau `llm.provider: gemini` di config, isi dengan key gratis dari <https://aistudio.google.com/apikey>. |
 | `PIXABAY_API_KEY` | **Sumber footage utama.** Daftar di <https://pixabay.com/accounts/register/>, lalu buka <https://pixabay.com/api/docs/>; key ada di bagian *Parameters*. |
 | `PEXELS_API_KEY` | *(opsional)* <https://www.pexels.com/api/> → *Your API Key*. Pexels sempat menutup pendaftaran key baru; kalau kamu sudah punya key, Pexels dipakai lebih dulu karena punya lebih banyak video vertikal. |
 
@@ -187,7 +188,7 @@ Hasilnya ada di `work/<run-id>/video_0/` (`final.mp4`, `thumbnail.jpg`, `script.
 | `upload.privacy_status` | `scheduled` (private + publishAt, default), `private`, `unlisted`, atau `public`. |
 | `upload.contains_synthetic_media` | `false`: footage asli + narator TTS generik yang tidak meniru orang nyata. Ubah ke `true` kalau menambahkan visual atau suara realistis buatan AI. |
 | `trends.regions` / `category_ids` | Sumber sinyal tren (US, GB, CA, AU; kategori Sains & Teknologi, Pendidikan, Otomotif). |
-| `llm.provider` | `gemini` (gratis) atau `claude`. |
+| `llm.provider` / `claude_model` / `claude_effort` | `claude` (default, `claude-opus-5-5`, effort `medium`) atau `gemini` (gratis). Ganti `claude_model` ke `claude-sonnet-5-5` untuk menghemat sekitar setengah biaya. `LLM_API_KEY` harus sesuai provider. |
 | `script.min_quality_score` | Ambang quality gate (1–10). |
 | `styles.*` | Kumpulan variasi: jenis pembuka, struktur, gaya subtitle, palet, layout thumbnail. |
 
@@ -206,7 +207,8 @@ Hasilnya ada di `work/<run-id>/video_0/` (`final.mp4`, `thumbnail.jpg`, `script.
 | `invalid_grant` saat upload | Refresh token kedaluwarsa atau dicabut. Pastikan consent screen sudah **Production**, lalu jalankan ulang `get_refresh_token.py`. |
 | `quotaExceeded` | Kuota harian habis. Cek Langkah 3 dan tunggu reset. |
 | Thumbnail gagal (403) | Channel belum verifikasi nomor HP (Langkah 1.9). |
-| `429` dari Gemini | Rate limit free tier. Turunkan `max-parallel` di `daily.yml` (mis. ke 2). |
+| `API key Claude ditolak` | `LLM_API_KEY` bukan key Claude (`sk-ant-...`) atau saldo di console.anthropic.com habis. |
+| `503`/`429` dari Gemini | Server overload / rate limit free tier. Program otomatis pindah ke model cadangan; kalau tetap gagal, turunkan `max-parallel` di `daily.yml`. |
 | `tidak ada footage` | Kata kunci terlalu spesifik. Tambahkan kata kunci umum di `channel.fallback_visual_keywords`. |
 | `hanya N topik layak` | Tren hari itu kurang relevan dan LLM gagal memberi cukup topik. Run berikutnya biasanya normal. |
 | Gagal push `history.json` | Izinkan *Read and write permissions* (Langkah 6.3). |

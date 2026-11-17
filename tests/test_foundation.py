@@ -206,15 +206,80 @@ def test_gemini_blocked():
         GeminiClient("m1", "KEY").complete_json("s", "p")
 
 
-@responses.activate
-def test_claude_client_retries_invalid_json():
-    url = "https://api.anthropic.com/v1/messages"
-    responses.post(url, json={"content": [{"type": "text", "text": "oops not json"}]})
-    responses.post(url, json={"content": [{"type": "text", "text": '[{"ok": true}]'}]})
-    c = ClaudeClient("claude-x", "KEY")
-    assert c.complete_json("s", "p") == [{"ok": True}]
-    assert responses.calls[0].request.headers["anthropic-version"] == "2023-06-01"
-    assert "not valid JSON" in json.loads(responses.calls[1].request.body)["messages"][0]["content"]
+def _claude_msg(text, stop="end_turn", category=None):
+    from types import SimpleNamespace as NS
+    return NS(stop_reason=stop, stop_details=NS(category=category),
+              content=[NS(type="thinking", thinking=""), NS(type="text", text=text)])
+
+
+class FakeAnthropic:
+    def __init__(self, *replies):
+        self.replies = list(replies)
+        self.kwargs = []
+        outer = self
+
+        class Msgs:
+            def create(self, **kw):
+                outer.kwargs.append(kw)
+                return outer.replies.pop(0)
+
+        from types import SimpleNamespace as NS
+        self.beta = NS(messages=Msgs())
+
+
+def test_claude_client_request_shape_and_json_retry():
+    fake = FakeAnthropic(_claude_msg("oops not json"), _claude_msg('[{"ok": true}]'))
+    c = ClaudeClient("claude-opus-5-5", "KEY", effort="medium", client=fake)
+    assert c.complete_json("s", "p", temperature=0.9) == [{"ok": True}]
+    kw = fake.kwargs[0]
+    assert kw["model"] == "claude-opus-5-5"
+    assert "temperature" not in kw and "thinking" not in kw  # model terbaru menolak temperature
+    assert kw["output_config"] == {"effort": "medium"}
+    assert kw["fallbacks"] == "default" and kw["betas"] == ["server-side-fallback-2026-07-01"]
+    assert "not valid JSON" in fake.kwargs[1]["messages"][0]["content"]
+
+
+@pytest.mark.parametrize("stop,match", [("refusal", "menolak"), ("max_tokens", "terpotong")])
+def test_claude_client_bad_stop_reasons(stop, match):
+    fake = FakeAnthropic(_claude_msg("{}", stop=stop, category="general_harms"))
+    with pytest.raises(LLMError, match=match):
+        ClaudeClient("claude-opus-5-5", "KEY", client=fake).complete_json("s", "p")
+
+
+def test_claude_client_real_sdk_wire_format():
+    """SDK asli + transport tiruan: pastikan body & header yang benar-benar terkirim."""
+    import anthropic
+    import httpx2
+
+    seen = {}
+
+    def handler(request):
+        seen["headers"] = dict(request.headers)
+        seen["body"] = json.loads(request.content)
+        return httpx2.Response(200, json={
+            "id": "msg_1", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
+            "content": [{"type": "text", "text": '{"ok": true}'}], "stop_reason": "end_turn",
+            "stop_sequence": None, "usage": {"input_tokens": 1, "output_tokens": 1},
+        })
+
+    sdk = anthropic.Anthropic(api_key="sk-test", max_retries=0,
+                              http_client=anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(handler)))
+    out = ClaudeClient("claude-opus-5-5", "sk-test", client=sdk).complete_json("sys", "prompt")
+    assert out == {"ok": True}
+    assert seen["body"]["fallbacks"] == "default"
+    assert "temperature" not in seen["body"]
+    assert "server-side-fallback-2026-07-01" in seen["headers"]["anthropic-beta"]
+
+
+def test_claude_auth_error_message():
+    import anthropic
+    import httpx2
+
+    sdk = anthropic.Anthropic(api_key="bad", max_retries=0, http_client=anthropic.DefaultHttpxClient(
+        transport=httpx2.MockTransport(lambda r: httpx2.Response(401, json={
+            "type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}}))))
+    with pytest.raises(LLMError, match="LLM_API_KEY"):
+        ClaudeClient("claude-opus-5-5", "bad", client=sdk).complete_json("s", "p")
 
 
 def test_all_prompts_render():

@@ -132,26 +132,52 @@ class GeminiClient(_BaseClient):
 
 
 class ClaudeClient(_BaseClient):
-    URL = "https://api.anthropic.com/v1/messages"
+    """Claude lewat SDK resmi `anthropic`.
 
-    def _call(self, system: str, prompt: str, temperature: float) -> str:
-        payload = {
-            "model": self.model,
-            "max_tokens": 8000,
-            "system": system + "\nAlways reply with valid JSON only, no prose.",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": min(temperature, 1.0),
-        }
-        data = http.post_json(
-            self.URL,
-            payload,
-            headers={"x-api-key": self.api_key, "anthropic-version": "2023-06-01"},
-            session=self.session,
-            timeout=180,
-        )
-        text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+    Catatan model terbaru: temperature/top_p tidak boleh dikirim (400), thinking selalu adaptif,
+    dan kedalaman diatur lewat output_config.effort. Server-side fallback ("default") menjalankan
+    ulang permintaan di model lain kalau model utama menolak (stop_reason == "refusal").
+    """
+
+    FALLBACK_BETA = "server-side-fallback-2026-07-01"
+
+    def __init__(self, model: str, api_key: str, effort: str = "medium", client=None):
+        super().__init__(model, api_key)
+        self.effort = effort
+        if client is None:
+            import anthropic
+
+            # SDK sendiri sudah retry 408/409/429/5xx + error koneksi dengan backoff
+            client = anthropic.Anthropic(api_key=api_key, max_retries=6, timeout=600)
+        self.client = client
+
+    def _call(self, system: str, prompt: str, temperature: float) -> str:  # temperature diabaikan
+        import anthropic
+
+        try:
+            resp = self.client.beta.messages.create(
+                model=self.model,
+                max_tokens=16000,
+                system=system + "\nReply with valid JSON only, no prose before or after it.",
+                messages=[{"role": "user", "content": prompt}],
+                output_config={"effort": self.effort},
+                betas=[self.FALLBACK_BETA],
+                fallbacks="default",
+            )
+        except anthropic.AuthenticationError as e:
+            raise LLMError("API key Claude ditolak: cek secret LLM_API_KEY (harus key dari console.anthropic.com)") from e
+        except anthropic.APIStatusError as e:
+            raise LLMError(f"Claude API error {e.status_code}: {e.message}") from e
+        except anthropic.APIConnectionError as e:
+            raise LLMError(f"koneksi ke Claude API gagal: {e}") from e
+        if resp.stop_reason == "refusal":
+            cat = getattr(getattr(resp, "stop_details", None), "category", None)
+            raise LLMError(f"Claude menolak permintaan (kategori: {cat})")
+        if resp.stop_reason == "max_tokens":
+            raise LLMError("jawaban Claude terpotong (max_tokens)")
+        text = "".join(b.text for b in resp.content if b.type == "text")
         if not text:
-            raise LLMError(f"Claude menjawab kosong (stop_reason={data.get('stop_reason')})")
+            raise LLMError(f"Claude menjawab kosong (stop_reason={resp.stop_reason})")
         return text
 
 
@@ -159,5 +185,5 @@ def get_llm(config: Config) -> LLM:
     key = env("LLM_API_KEY")
     c = config.llm
     if c.provider == "claude":
-        return ClaudeClient(c.claude_model, key, c.temperature)
+        return ClaudeClient(c.claude_model, key, effort=c.claude_effort)
     return GeminiClient(c.gemini_model, key, c.temperature, fallback_models=c.gemini_fallback_models)
