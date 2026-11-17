@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest>=8.0
+responses>=0.25
+# ffmpeg portabel untuk menjalankan tes perakitan di komputer lokal (CI memakai ffmpeg dari apt)
+imageio-ffmpeg>=0.5

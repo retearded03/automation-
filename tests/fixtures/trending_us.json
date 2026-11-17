@@ -1,0 +1,39 @@
+{
+  "kind": "youtube#videoListResponse",
+  "items": [
+    {
+      "id": "vidCar1",
+      "snippet": {
+        "publishedAt": "2026-11-16T12:00:00Z",
+        "title": "2027 Electric Pickup Full Review - Crash Safety and Battery Test",
+        "description": "We test the new electric pickup.",
+        "tags": ["ev", "pickup", "battery", "crash test"],
+        "categoryId": "2",
+        "channelTitle": "Auto Reviews"
+      },
+      "statistics": {"viewCount": "240000", "likeCount": "9000", "commentCount": "800"}
+    },
+    {
+      "id": "vidMusic",
+      "snippet": {
+        "publishedAt": "2026-11-16T20:00:00Z",
+        "title": "Some Artist - New Song (Official Music Video)",
+        "tags": ["music"],
+        "categoryId": "10",
+        "channelTitle": "ArtistVEVO"
+      },
+      "statistics": {"viewCount": "5000000"}
+    },
+    {
+      "id": "vidBridge",
+      "snippet": {
+        "publishedAt": "2026-11-17T06:00:00Z",
+        "title": "Building the world's longest suspension bridge (timelapse)",
+        "tags": ["bridge", "engineering", "construction"],
+        "categoryId": "28",
+        "channelTitle": "Mega Builds"
+      },
+      "statistics": {"viewCount": "60000"}
+    }
+  ]
+}

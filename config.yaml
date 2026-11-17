@@ -1,0 +1,122 @@
+# Konfigurasi utama yt-autopilot. Semua kredensial TIDAK ditaruh di sini,
+# melainkan lewat GitHub Secrets / environment variable.
+
+channel:
+  name: "Built Curious"
+  niche: >-
+    How things work: engineering, machines, infrastructure, manufacturing and
+    everyday science explained as short, surprising, accurate facts
+  language: "en"
+  audience: "English-speaking viewers, primarily in the United States"
+  category_id: "27"          # 27 = Education, 28 = Science & Technology
+  fallback_visual_keywords: ["engineering", "machinery", "factory", "construction site", "technology"]
+
+trends:
+  regions: ["US", "GB", "CA", "AU"]
+  category_ids: ["28", "27", "2"]   # Sains & Teknologi, Pendidikan, Otomotif
+  include_general_chart: true
+  max_results_per_chart: 50
+  # Dibuang sebelum dikirim ke LLM: Film, Musik, Olahraga, Gaming, Entertainment,
+  # Berita & Politik, Movies, Shows, Trailers
+  blocked_category_ids: ["1", "10", "17", "20", "24", "25", "30", "43", "44"]
+  max_trends_for_llm: 60
+
+schedule:
+  videos_per_day: 5
+  timezone: "America/New_York"
+  # Satu slot per video, jam lokal di timezone di atas.
+  publish_slots: ["08:00", "12:00", "15:00", "18:00", "21:00"]
+  min_lead_minutes: 20
+
+upload:
+  # scheduled = private + publishAt (YouTube yang menayangkan di jam slot)
+  # private | unlisted | public = langsung dengan status tersebut
+  privacy_status: "scheduled"
+  # Footage stok asli + narator TTS generik (tidak meniru orang nyata) dan tanpa
+  # visual realistis buatan AI -> tidak termasuk "altered or synthetic content".
+  # Ubah ke true kalau kamu menambahkan visual/suara realistis buatan AI.
+  contains_synthetic_media: false
+  made_for_kids: false
+  set_thumbnail: true
+  notify_subscribers: true
+
+format:
+  width: 1080
+  height: 1920
+  fps: 30
+  max_seconds: 58
+  min_seconds: 15
+  target_words: 135
+
+llm:
+  provider: "gemini"                 # gemini | claude
+  gemini_model: "gemini-flash-latest"
+  claude_model: "claude-haiku-5-5"
+  temperature: 0.9
+
+script:
+  min_quality_score: 7
+  min_segments: 4
+  max_segments: 8
+  sources_per_video: 3
+  max_source_chars: 6000
+  max_attempts: 2
+
+voice:
+  voices:
+    - "en-US-AndrewNeural"
+    - "en-US-ChristopherNeural"
+    - "en-US-AriaNeural"
+    - "en-GB-RyanNeural"
+    - "en-US-EmmaNeural"
+  base_rate_percent: 8
+  max_rate_percent: 25
+
+visuals:
+  providers: ["pexels", "pixabay"]
+  seconds_per_shot: 3.2
+  max_shots_per_segment: 3
+  avoid_reuse_days: 60
+  max_download_mb: 80
+
+music:
+  folder: "assets/music"
+  volume_db: -16
+
+fonts:
+  folder: "assets/fonts"
+
+styles:
+  avoid_recent_combinations: 15
+  hook_types:
+    - "surprising number: open with a startling statistic from the sources"
+    - "direct question the viewer has never thought to ask"
+    - "myth vs fact: state a common belief, then flip it"
+    - "imagine scenario: put the viewer inside the situation"
+    - "counterintuitive claim stated bluntly in one short line"
+  structures:
+    - "step-by-step process: walk through how it works in order"
+    - "problem then clever solution: the obstacle engineers faced and how they beat it"
+    - "comparison: contrast it with something familiar to make scale tangible"
+    - "countdown of 3 facts, building to the most surprising one"
+    - "mini story: a concrete moment that reveals how the thing works"
+  caption_styles:
+    - {name: "punch_yellow", font: "Roboto", size: 92, primary: "#FFFFFF", highlight: "#FFD400", outline: "#000000", outline_width: 7, words: 2, uppercase: true, y: 0.62, pop: true}
+    - {name: "clean_white", font: "Roboto", size: 80, primary: "#FFFFFF", highlight: "#4FD1FF", outline: "#101010", outline_width: 5, words: 3, uppercase: false, y: 0.72, pop: false}
+    - {name: "boxed_green", font: "DejaVu Sans", size: 78, primary: "#FFFFFF", highlight: "#7CFF6B", outline: "#000000", outline_width: 4, words: 3, uppercase: true, y: 0.55, pop: true, box: true}
+    - {name: "single_word", font: "Roboto", size: 118, primary: "#FFFFFF", highlight: "#FF7A1A", outline: "#000000", outline_width: 8, words: 1, uppercase: true, y: 0.5, pop: true}
+  palettes:
+    - {name: "safety", accent: "#FFD400", text: "#111111", shade: "#000000"}
+    - {name: "electric", accent: "#2EC4FF", text: "#FFFFFF", shade: "#001A33"}
+    - {name: "lava", accent: "#FF5A1F", text: "#FFFFFF", shade: "#1A0500"}
+    - {name: "mint", accent: "#5BFFB0", text: "#0B0B0B", shade: "#00140A"}
+  thumbnail_layouts: ["top_band", "bottom_band", "center_outline", "corner_tag"]
+  hook_overlay: [true, false]
+
+notify:
+  telegram: true
+  send_video_on_dry_run: true
+
+paths:
+  work_dir: "work"
+  history_file: "history.json"

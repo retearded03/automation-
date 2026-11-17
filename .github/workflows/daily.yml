@@ -1,0 +1,144 @@
+name: Daily Shorts
+
+on:
+  schedule:
+    # 07:00 UTC = 14:00 WIB. Video TIDAK langsung tayang: tiap video dijadwalkan (publishAt)
+    # ke slot jam ramai penonton AS yang diatur di config.yaml -> schedule.publish_slots.
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: buat video tanpa upload (video dikirim ke Telegram untuk dicek)"
+        type: boolean
+        default: true
+      count:
+        description: "Jumlah video (kosongkan = schedule.videos_per_day di config.yaml)"
+        type: string
+        default: ""
+
+concurrency:
+  group: daily-shorts
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+  DRY_RUN_FLAG: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  plan:
+    name: Tren & pilih topik
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      indices: ${{ steps.plan.outputs.indices }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - id: plan
+        name: Plan
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          COUNT: ${{ inputs.count }}
+        run: |
+          COUNT_ARG=""
+          if [[ "$COUNT" =~ ^[0-9]+$ ]]; then COUNT_ARG="--count $COUNT"; fi
+          python pipeline.py plan --run-id "$RUN_ID" $DRY_RUN_FLAG $COUNT_ARG
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: plan
+          path: work/${{ env.RUN_ID }}/plan/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  produce:
+    name: Video ${{ matrix.index }}
+    needs: plan
+    if: needs.plan.outputs.indices != '' && needs.plan.outputs.indices != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false        # satu video gagal tidak menghentikan video lain
+      max-parallel: 5         # turunkan kalau LLM free tier sering kena rate limit (429)
+      matrix:
+        index: ${{ fromJSON(needs.plan.outputs.indices) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install ffmpeg & font
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-roboto fonts-dejavu-core
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v8
+        with:
+          name: plan
+          path: work/${{ env.RUN_ID }}/plan
+      - name: Produce
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: python pipeline.py produce --run-id "$RUN_ID" --index ${{ matrix.index }} $DRY_RUN_FLAG
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          # berisi result.json; saat dry-run juga final.mp4, thumbnail.jpg, script.json
+          name: result-${{ matrix.index }}
+          path: work/${{ env.RUN_ID }}/video_${{ matrix.index }}/report/
+          retention-days: 3
+          if-no-files-found: ignore
+
+  finalize:
+    name: History & notifikasi
+    needs: [plan, produce]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write          # untuk commit history.json
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          path: work/${{ env.RUN_ID }}/artifacts
+      - name: Finalize
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python pipeline.py finalize --run-id "$RUN_ID" $DRY_RUN_FLAG
+      - name: Commit history.json
+        if: env.DRY_RUN_FLAG == ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add history.json
+          if git diff --cached --quiet; then echo "history.json tidak berubah"; exit 0; fi
+          git commit -m "chore: update history.json (run ${RUN_ID}) [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash && git push; then exit 0; fi
+            sleep $((i * 5))
+          done
+          echo "Gagal push history.json" >&2
+          exit 1

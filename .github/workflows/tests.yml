@@ -1,0 +1,27 @@
+name: Tests
+
+on:
+  push:
+    paths-ignore: ["history.json", "README.md"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install ffmpeg & font
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-roboto fonts-dejavu-core
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q
