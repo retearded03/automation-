@@ -32,6 +32,38 @@
       ],
       "publish_at": "2026-11-19T02:00:00.000Z",
       "created_at": "2026-11-18T08:32:10+00:00"
+    },
+    {
+      "run_id": "44700047339-1",
+      "video_id": "aMQ9HEu1iXI",
+      "url": "https://youtube.com/shorts/aMQ9HEu1iXI",
+      "title": "Why Your Phone Boils Water Thousands of Times Every Second",
+      "topic": "How Liquid Cooling Systems Work in Phones Explains how tiny vapor chambers use phase-change physics to move heat away from mobile processors.",
+      "style": {
+        "hook_type": "surprising number: open with a startling statistic from the sources",
+        "structure": "problem then clever solution: the obstacle engineers faced and how they beat it",
+        "caption_style": "boxed_green",
+        "palette": "electric",
+        "thumbnail_layout": "top_band",
+        "hook_overlay": false,
+        "voice": "en-GB-RyanNeural"
+      },
+      "clip_ids": [
+        "pixabay:1154",
+        "pixabay:186195",
+        "pixabay:189018",
+        "pixabay:190300",
+        "pixabay:1971",
+        "pixabay:2154",
+        "pixabay:2819",
+        "pixabay:304019",
+        "pixabay:365154",
+        "pixabay:372706",
+        "pixabay:38084",
+        "pixabay:47215"
+      ],
+      "publish_at": "2026-11-20T20:00:00.000Z",
+      "created_at": "2026-11-20T08:25:19+00:00"
     }
   ]
 }
