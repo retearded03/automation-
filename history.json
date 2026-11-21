@@ -64,6 +64,102 @@
       ],
       "publish_at": "2026-11-20T20:00:00.000Z",
       "created_at": "2026-11-20T08:25:19+00:00"
+    },
+    {
+      "run_id": "44882707565-1",
+      "video_id": "LgcUtaOYMp0",
+      "url": "https://youtube.com/shorts/LgcUtaOYMp0",
+      "title": "Why Smartphone Liquid Cooling Doesn't Leak",
+      "topic": "Why Smartphone Liquid Cooling Doesn't Leak Explains how vapor chamber cooling systems inside thin phones manage thermal spikes without moving parts.",
+      "style": {
+        "hook_type": "myth vs fact: state a common belief, then flip it",
+        "structure": "problem then clever solution: the obstacle engineers faced and how they beat it",
+        "caption_style": "single_word",
+        "palette": "mint",
+        "thumbnail_layout": "top_band",
+        "hook_overlay": false,
+        "voice": "en-US-AriaNeural"
+      },
+      "clip_ids": [
+        "pixabay:120005",
+        "pixabay:150957",
+        "pixabay:150959",
+        "pixabay:161364",
+        "pixabay:190301",
+        "pixabay:204421",
+        "pixabay:204527",
+        "pixabay:28236",
+        "pixabay:311332",
+        "pixabay:320916",
+        "pixabay:348057",
+        "pixabay:349627",
+        "pixabay:352846",
+        "pixabay:387354",
+        "pixabay:820"
+      ],
+      "publish_at": "2026-11-21T13:00:00.000Z",
+      "created_at": "2026-11-21T08:35:24+00:00"
+    },
+    {
+      "run_id": "44882707565-1",
+      "video_id": "ZfndL7ISXKY",
+      "url": "https://youtube.com/shorts/ZfndL7ISXKY",
+      "title": "How Light Etches Billions of Microscopic Transistors",
+      "topic": "How Silicon Chips Are Etched with Light Explains the photolithography process used to print billions of microscopic transistors on a single piece of silicon.",
+      "style": {
+        "hook_type": "imagine scenario: put the viewer inside the situation",
+        "structure": "problem then clever solution: the obstacle engineers faced and how they beat it",
+        "caption_style": "single_word",
+        "palette": "mint",
+        "thumbnail_layout": "center_outline",
+        "hook_overlay": true,
+        "voice": "en-GB-RyanNeural"
+      },
+      "clip_ids": [
+        "pixabay:11578",
+        "pixabay:12437",
+        "pixabay:159021",
+        "pixabay:197486",
+        "pixabay:210481",
+        "pixabay:26039",
+        "pixabay:262188",
+        "pixabay:266876",
+        "pixabay:314643",
+        "pixabay:336224",
+        "pixabay:4215"
+      ],
+      "publish_at": "2026-11-21T17:00:00.000Z",
+      "created_at": "2026-11-21T08:35:24+00:00"
+    },
+    {
+      "run_id": "44882707565-1",
+      "video_id": "CJJKhU17Cqw",
+      "url": "https://youtube.com/shorts/CJJKhU17Cqw",
+      "title": "Why Your Computer's Memory Constantly Forgets Everything",
+      "topic": "How RAM Chips Store Data Without Power Explains the microscopic capacitors and transistors that form dynamic RAM and why they need to be refreshed thousands of times a second.",
+      "style": {
+        "hook_type": "myth vs fact: state a common belief, then flip it",
+        "structure": "mini story: a concrete moment that reveals how the thing works",
+        "caption_style": "clean_white",
+        "palette": "lava",
+        "thumbnail_layout": "corner_tag",
+        "hook_overlay": false,
+        "voice": "en-US-AndrewNeural"
+      },
+      "clip_ids": [
+        "pixabay:150872",
+        "pixabay:286443",
+        "pixabay:33093",
+        "pixabay:333588",
+        "pixabay:353731",
+        "pixabay:383161",
+        "pixabay:47218",
+        "pixabay:49311",
+        "pixabay:78",
+        "pixabay:846"
+      ],
+      "publish_at": "2026-11-21T23:00:00.000Z",
+      "created_at": "2026-11-21T08:35:24+00:00"
     }
   ]
 }
