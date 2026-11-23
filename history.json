@@ -160,6 +160,41 @@
       ],
       "publish_at": "2026-11-21T23:00:00.000Z",
       "created_at": "2026-11-21T08:35:24+00:00"
+    },
+    {
+      "run_id": "45137590020-1",
+      "video_id": "QQ0ZlR4EFMI",
+      "url": "https://youtube.com/shorts/QQ0ZlR4EFMI",
+      "title": "How Foldable Glass Bends Without Breaking",
+      "topic": "How Foldable Glass Bends Without Breaking Explains the science of ultra-thin flexible glass and microscopic hinges that endure hundreds of thousands of folds.",
+      "style": {
+        "hook_type": "imagine scenario: put the viewer inside the situation",
+        "structure": "step-by-step process: walk through how it works in order",
+        "caption_style": "clean_white",
+        "palette": "mint",
+        "thumbnail_layout": "top_band",
+        "hook_overlay": false,
+        "voice": "en-GB-RyanNeural"
+      },
+      "clip_ids": [
+        "pixabay:1110",
+        "pixabay:111518",
+        "pixabay:1210",
+        "pixabay:1307",
+        "pixabay:142641",
+        "pixabay:173485",
+        "pixabay:189290",
+        "pixabay:197489",
+        "pixabay:211636",
+        "pixabay:229277",
+        "pixabay:2369",
+        "pixabay:736",
+        "pixabay:73847",
+        "pixabay:88883",
+        "pixabay:9854"
+      ],
+      "publish_at": "2026-11-23T17:00:00.000Z",
+      "created_at": "2026-11-23T08:29:45+00:00"
     }
   ]
 }
