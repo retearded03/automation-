@@ -342,3 +342,35 @@ def test_all_prompts_render():
                   max_segments=8, sources="S1", feedback="")
     render_prompt("fact_check", script="{}", sources="S1")
     render_prompt("quality_gate", niche="n", script="{}", recent_titles="[]")
+
+
+@responses.activate
+def test_chain_falls_back_to_openai_compatible(cfg, monkeypatch, no_sleep):
+    from ytauto.llm import get_llm
+    monkeypatch.setenv("LLM_API_KEY", "GKEY")
+    monkeypatch.setenv("CENTAI_API_KEY", "CKEY")
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    cfg.llm.gemini_rounds = 1
+    for m in [cfg.llm.gemini_model] + cfg.llm.gemini_fallback_models:
+        for _ in range(5):
+            responses.post(GEMINI.format(m), status=503)
+    responses.post("https://api.cent-ai.dev/v1/chat/completions", status=503)
+    for _ in range(3):
+        responses.post("https://api.cent-ai.dev/v1/chat/completions", status=503)
+    responses.post("https://api.cent-ai.dev/v1/chat/completions",
+                   json={"choices": [{"message": {"content": '{"ok": "cent"}'}}]})
+    llm = get_llm(cfg)
+    assert llm.complete_json("s", "p", step="script_writer") == {"ok": "cent"}
+    cent = [c for c in responses.calls if "cent-ai" in c.request.url]
+    body = json.loads(cent[-1].request.body)
+    assert body["model"] == "glm-5.3-flash:free"  # hy4 gagal -> lanjut ke glm
+    assert cent[-1].request.headers["Authorization"] == "Bearer CKEY"
+    assert [n for n, _ in llm.clients] == ["gemini", "centai:hy4-flash:free", "centai:glm-5.3-flash:free"]  # groq dilewati
+
+
+def test_no_fallback_keys_returns_primary(cfg, monkeypatch):
+    from ytauto.llm import GeminiClient, get_llm
+    monkeypatch.setenv("LLM_API_KEY", "GKEY")
+    monkeypatch.delenv("CENTAI_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    assert isinstance(get_llm(cfg), GeminiClient)

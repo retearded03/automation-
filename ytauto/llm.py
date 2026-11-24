@@ -212,6 +212,48 @@ class ClaudeClient(_BaseClient):
         return text
 
 
+class OpenAICompatClient(_BaseClient):
+    """Penyedia berformat OpenAI Chat Completions (Cent AI, Groq, OpenRouter, DeepSeek, ...)."""
+
+    def __init__(self, name: str, base_url: str, model: str, api_key: str, temperature: float = 0.8, session=None):
+        super().__init__(model, api_key, temperature, session)
+        self.name = name
+        self.url = base_url.rstrip("/") + "/chat/completions"
+
+    def _call(self, system: str, prompt: str, temperature: float) -> str:
+        data = http.post_json(
+            self.url,
+            {"model": self.model, "temperature": temperature,
+             "messages": [{"role": "system", "content": system + " Reply with valid JSON only."},
+                          {"role": "user", "content": prompt}]},
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            session=self.session, timeout=180, attempts=4, base_delay=4.0,
+        )
+        choices = data.get("choices") or []
+        text = ((choices[0].get("message") or {}).get("content") or "") if choices else ""
+        if not text:
+            raise LLMError(f"{self.name} menjawab kosong: {str(data)[:200]}")
+        return text
+
+
+class ChainClient:
+    """Coba provider utama dulu; kalau gagal, lanjut ke penyedia cadangan berikutnya."""
+
+    def __init__(self, clients: list[tuple[str, LLM]]):
+        self.clients = clients
+
+    def complete_json(self, system: str, prompt: str, temperature: float | None = None,
+                      step: str | None = None) -> Any:
+        last: Exception | None = None
+        for name, client in self.clients:
+            try:
+                return client.complete_json(system, prompt, temperature, step=step)
+            except (LLMError, RetryableError, http.HTTPError) as e:
+                last = e
+                log.warning("LLM %s gagal (%s), coba penyedia berikutnya", name, str(e)[:200])
+        raise LLMError(f"semua penyedia LLM gagal; terakhir: {last}")
+
+
 class StepRouter:
     """Mengarahkan tiap langkah (topic_picker, script_writer, ...) ke klien/model miliknya."""
 
@@ -228,6 +270,18 @@ class StepRouter:
 
 
 def get_llm(config: Config, sdk_client=None) -> LLM:
+    primary = _primary_llm(config, sdk_client)
+    chain: list[tuple[str, LLM]] = [(config.llm.provider, primary)]
+    for fp in config.llm.fallback_providers:
+        key = env(fp.key_env, required=False)
+        if not key:
+            log.warning("cadangan %s dilewati: secret %s kosong", fp.name, fp.key_env)
+            continue
+        chain.append((f"{fp.name}:{fp.model}", OpenAICompatClient(fp.name, fp.base_url, fp.model, key, fp.temperature)))
+    return primary if len(chain) == 1 else ChainClient(chain)
+
+
+def _primary_llm(config: Config, sdk_client=None) -> LLM:
     key = env("LLM_API_KEY")
     c = config.llm
     if c.provider == "claude":

@@ -79,6 +79,15 @@ class StepModel(BaseModel):
     effort: Effort = "medium"
 
 
+class FallbackProvider(BaseModel):
+    """Penyedia cadangan berformat OpenAI (/chat/completions): Cent AI, Groq, OpenRouter, DeepSeek, ..."""
+    name: str
+    base_url: str
+    model: str
+    key_env: str
+    temperature: float = 0.8
+
+
 class LLMCfg(BaseModel):
     provider: Literal["gemini", "claude"] = "gemini"
     gemini_model: str = "gemini-flash-latest"
@@ -89,6 +98,8 @@ class LLMCfg(BaseModel):
     claude_model: str = "claude-sonnet-5-5"
     claude_effort: Effort = "medium"
     claude_steps: dict[str, StepModel] = Field(default_factory=dict)
+    # dicoba berurutan kalau provider utama gagal; yang secret-nya kosong dilewati
+    fallback_providers: list[FallbackProvider] = Field(default_factory=list)
 
     @field_validator("claude_steps")
     @classmethod

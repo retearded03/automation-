@@ -66,9 +66,15 @@ llm:
   # Dipakai otomatis kalau model utama terus overload (503), kena rate limit (429), atau tidak ada (404)
   gemini_fallback_models: ["gemini-flash-lite-latest", "gemini-3.8-flash"]
   # Free tier sering overload (503). Kalau semua model sibuk: tunggu lalu ulangi satu putaran penuh.
-  gemini_rounds: 3                   # jumlah putaran maksimal
+  gemini_rounds: 1                   # 1 putaran, lalu pindah ke fallback_providers (naikkan kalau tanpa cadangan)
   gemini_round_wait: 90              # detik; jeda naik tiap putaran (90, 180, ...)
   temperature: 0.9                   # hanya untuk Gemini
+  # Cadangan berformat OpenAI, dicoba berurutan kalau semua model Gemini gagal.
+  # Yang secret-nya belum diisi otomatis dilewati. Hapus baris yang promonya sudah habis.
+  fallback_providers:
+    - {name: "centai", base_url: "https://api.cent-ai.dev/v1", model: "hy4-flash:free", key_env: "CENTAI_API_KEY"}      # gratis s/d 30 Nov 2026
+    - {name: "centai", base_url: "https://api.cent-ai.dev/v1", model: "glm-5.3-flash:free", key_env: "CENTAI_API_KEY"}  # kuota harian bersama
+    - {name: "groq", base_url: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b", key_env: "GROQ_API_KEY"}  # opsional
 
 script:
   min_quality_score: 7
