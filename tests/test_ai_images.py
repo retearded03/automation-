@@ -55,6 +55,7 @@ def test_cloudflare_images_per_scene(cfg, cf_env, tmp_path):
     def cb(request):
         body = json.loads(request.body)
         sent.append(body["prompt"])
+        assert set(body) == {"prompt", "steps"}  # parameter lain ditolak Cloudflare (400)
         assert request.headers["Authorization"] == "Bearer TOK"
         return 200, {}, json.dumps({"success": True, "result": {"image": base64.b64encode(jpeg_bytes()).decode()}})
 

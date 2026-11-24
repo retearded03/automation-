@@ -73,7 +73,7 @@ class Cloudflare:
     def generate(self, prompt: str, dest: Path, seed: int) -> Path:
         data = http.post_json(
             CF_URL.format(account=self.account, model=self.model),
-            {"prompt": prompt[:2000], "steps": 6, "seed": seed},
+            {"prompt": prompt[:2000], "steps": 6},  # flux-1-schnell menolak parameter lain (400)
             headers={"Authorization": f"Bearer {self.token}"},
             session=self.session, timeout=120, attempts=4, base_delay=3.0,
         )
