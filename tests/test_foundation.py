@@ -14,7 +14,7 @@ from ytauto.llm import ClaudeClient, GeminiClient, LLMError, extract_json, rende
 # ---------- config ----------
 def test_load_project_config(cfg):
     assert cfg.channel.name
-    assert cfg.schedule.videos_per_day == 5
+    assert cfg.schedule.videos_per_day >= 1
     assert len(cfg.schedule.publish_slots) >= cfg.schedule.videos_per_day
     assert cfg.format.vertical
     assert cfg.upload.made_for_kids is False

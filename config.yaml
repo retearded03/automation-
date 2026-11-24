@@ -22,7 +22,7 @@ trends:
   max_trends_for_llm: 60
 
 schedule:
-  videos_per_day: 5
+  videos_per_day: 1                # mulai 1/hari sampai stabil, baru dinaikkan
   timezone: "America/New_York"
   # Satu slot per video, jam lokal di timezone di atas.
   publish_slots: ["08:00", "12:00", "15:00", "18:00", "21:00"]
