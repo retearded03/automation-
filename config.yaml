@@ -101,7 +101,13 @@ visuals:
   # ai_image = ilustrasi AI bergaya animasi 3D per adegan (footage stok jadi cadangan)
   # stock    = footage Pixabay/Pexels saja
   mode: "ai_image"
-  ai_providers: ["cloudflare", "pollinations"]   # cloudflare butuh secret CF_ACCOUNT_ID + CF_API_TOKEN
+  # gemini_image memakai gambar referensi maskot (paling konsisten); cloudflare butuh CF_ACCOUNT_ID + CF_API_TOKEN
+  ai_providers: ["gemini_image", "cloudflare", "pollinations"]
+  gemini_image_models: ["gemini-2.5-flash-image"]   # dicoba duluan; model gambar lain dicari otomatis
+  # Maskot orisinal channel, muncul di setiap adegan. Gambar referensinya disimpan otomatis di
+  # assets/character/mascot.png pada run pertama; ganti file itu kalau ingin maskot lain.
+  character: "a small round friendly robot with a glossy cream-white body, a big curved dark visor face showing two glowing cyan oval eyes, short stubby arms and legs, and a tiny orange antenna on top"
+  background: "Plain solid soft pastel peach background, simple minimal set, soft studio lighting"
   cloudflare_model: "@cf/black-forest-labs/flux-1-schnell"
   # Dicoba berurutan; provider tanpa API key otomatis dilewati (cukup salah satu key).
   providers: ["pexels", "pixabay"]

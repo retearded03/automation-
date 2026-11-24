@@ -50,6 +50,7 @@ TIMINGS = {"segments": [{"index": 0, "duration": 6.0}, {"index": 1, "duration": 
 @responses.activate
 def test_cloudflare_images_per_scene(cfg, cf_env, tmp_path):
     cfg.visuals.mode = "ai_image"
+    cfg.visuals.ai_providers = ["cloudflare"]
     sent = []
 
     def cb(request):
@@ -64,9 +65,12 @@ def test_cloudflare_images_per_scene(cfg, cf_env, tmp_path):
     shots = [s for seg in res["segments"] for s in seg["shots"]]
     assert len(shots) == 3 and all(s["kind"] == "photo" and s["provider"] == "cloudflare" for s in shots)
     assert res["ai_images"] == 3 and res["clip_ids"] == []
-    assert "tiny workers beside a giant dam gate" in sent[0]
-    assert "stylized 3D animation" in sent[0] and "no text" in sent[0]
-    assert "turbine hall, water" in sent[2]  # adegan kosong -> pakai kata kunci
+    assert "reference sheet" in sent[0] and cfg.visuals.character in sent[0]  # maskot dibuat dulu
+    assert "tiny workers beside a giant dam gate" in sent[1]
+    assert cfg.visuals.character in sent[1] and cfg.visuals.background in sent[1]  # maskot & latar seragam
+    assert "stylized 3D animation" in sent[1] and "no text" in sent[1]
+    assert "turbine hall, water" in sent[3]  # adegan kosong -> pakai kata kunci
+    assert res["new_mascot"].endswith("mascot.png")
     assert res["attribution"] == [{"text": "Illustrations generated with AI (cloudflare)", "url": "", "key": "ai:cloudflare"}]
     assert Image.open(shots[0]["path"]).size == (512, 896)
 
@@ -74,6 +78,10 @@ def test_cloudflare_images_per_scene(cfg, cf_env, tmp_path):
 @responses.activate
 def test_falls_back_to_pollinations_then_stock(cfg, cf_env, tmp_path, no_sleep):
     cfg.visuals.mode = "ai_image"
+    cfg.visuals.ai_providers = ["cloudflare", "pollinations"]
+    ref = ai_images.reference_path(cfg)  # maskot sudah ada di repo -> tidak dibuat ulang
+    ref.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (512, 896)).save(ref)
     responses.add(responses.POST, CF, status=403, json={"success": False, "errors": [{"message": "quota"}]})
     # Pollinations: shot pertama berhasil (watermark bawah dipotong), lalu terus sibuk
     responses.add(responses.GET, POLL, body=jpeg_bytes(580, 1015), content_type="image/jpeg")
@@ -108,7 +116,7 @@ def test_no_ai_provider_available_uses_stock(cfg, monkeypatch):
 def test_build_prompt_varies_angle(cfg):
     p0 = ai_images.build_prompt(cfg, "a dam.", 0)
     p1 = ai_images.build_prompt(cfg, "a dam.", 1)
-    assert p0 != p1 and "a dam," in p0 and "9:16" in p0
+    assert p0 != p1 and "a dam." in p0 and "9:16" in p0
 
 
 # ---------------------------------------------------------------- topik dobel
@@ -153,3 +161,48 @@ def test_chain_records_which_provider_answered(cfg, monkeypatch, no_sleep):
     llm = get_llm(cfg)
     llm.complete_json("s", "p")
     assert llm_label(llm) == "centai:hy4-flash:free"
+
+
+
+# ---------------------------------------------------------------- Gemini Image + maskot
+GEM = "https://generativelanguage.googleapis.com/v1beta"
+
+
+@responses.activate
+def test_gemini_image_uses_reference_and_discovers_model(cfg, monkeypatch, tmp_path):
+    monkeypatch.setenv("GEMINI_API_KEY", "GK")
+    monkeypatch.delenv("CF_ACCOUNT_ID", raising=False)
+    cfg.visuals.mode = "ai_image"
+    cfg.visuals.ai_providers = ["gemini_image"]
+    cfg.visuals.gemini_image_models = ["old-image-model"]
+    responses.add(responses.GET, f"{GEM}/models", json={"models": [
+        {"name": "models/gemini-9-flash-image", "supportedGenerationMethods": ["generateContent"]},
+        {"name": "models/gemini-9-flash", "supportedGenerationMethods": ["generateContent"]},
+        {"name": "models/imagen-9", "supportedGenerationMethods": ["predict"]}]})
+    bodies = []
+
+    def gen_cb(request):
+        bodies.append(json.loads(request.body))
+        img = base64.b64encode(jpeg_bytes()).decode()
+        return 200, {}, json.dumps({"candidates": [{"content": {"parts": [
+            {"text": "here you go"}, {"inlineData": {"mimeType": "image/jpeg", "data": img}}]}}]})
+
+    responses.add_callback(responses.POST, f"{GEM}/models/gemini-9-flash-image:generateContent", callback=gen_cb)
+    res = visuals.run(cfg, SCRIPT, TIMINGS, tmp_path, used_ids=set(), seed=2)
+    assert res["ai_images"] == 3
+    # panggilan 1 = buat maskot (tanpa referensi); berikutnya selalu mengirim gambar maskot
+    assert len(bodies[0]["contents"][0]["parts"]) == 1
+    for b in bodies[1:]:
+        parts = b["contents"][0]["parts"]
+        assert "inlineData" in parts[0] and parts[1]["text"].startswith(cfg.visuals.ai_style)
+        assert "mascot character from the reference image" in parts[1]["text"]
+    assert bodies[1]["generationConfig"]["responseModalities"] == ["IMAGE"]
+
+
+def test_adopt_reference_copies_once(cfg, tmp_path):
+    run = tmp_path / "work" / "r1" / "artifacts" / "result-0"
+    run.mkdir(parents=True)
+    Image.new("RGB", (300, 300)).save(run / "mascot.png")
+    assert ai_images.adopt_reference(cfg, tmp_path / "work" / "r1") == ai_images.reference_path(cfg)
+    assert ai_images.reference_path(cfg).exists()
+    assert ai_images.adopt_reference(cfg, tmp_path / "work" / "r1") is None  # sudah ada -> tidak ditimpa

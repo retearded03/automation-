@@ -202,6 +202,8 @@ def run(config: Config, script: dict, timings: dict, out_dir: Path, used_ids: se
         if not gen.providers:
             log.warning("tidak ada penyedia gambar AI aktif, pakai footage stok")
             gen = None
+        else:
+            gen.ensure_reference(out_dir)
     ai_count = 0
     plan = []
     for seg, tm in zip(script["segments"], timings["segments"]):
@@ -214,7 +216,9 @@ def run(config: Config, script: dict, timings: dict, out_dir: Path, used_ids: se
                 scene = seg.get("scene") or ", ".join(kws)
                 path = clips_dir / f"seg{tm['index']:02d}_{k}_ai.jpg"
                 try:
-                    provider, _ = gen.generate(build_prompt(config, scene, k), path, seed + tm["index"] * 10 + k)
+                    provider, _ = gen.generate(
+                        build_prompt(config, scene, k), path, seed + tm["index"] * 10 + k,
+                        scene_prompt_for_reference=build_prompt(config, scene, k, with_reference=True))
                     shots.append({"provider": provider, "id": f"ai-{tm['index']}-{k}", "kind": "photo",
                                   "url": "", "width": 0, "height": 0, "duration": 0.0, "page_url": "",
                                   "author": provider, "author_url": "", "key": f"ai:{provider}",
@@ -248,7 +252,8 @@ def run(config: Config, script: dict, timings: dict, out_dir: Path, used_ids: se
             attribution.append({"text": f"{'Photo' if s['kind'] == 'photo' else 'Video'} by {s['author']} on {site}",
                                 "url": s["page_url"], "key": s["key"]})
     result = {"segments": plan, "attribution": attribution,
-              "clip_ids": sorted(k for k in seen if not k.startswith("ai:")), "ai_images": ai_count}
+              "clip_ids": sorted(k for k in seen if not k.startswith("ai:")), "ai_images": ai_count,
+              "new_mascot": str(gen.new_reference) if gen is not None and gen.new_reference else None}
     (out_dir / "visuals.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
     log.info("visual: %d shot dari %d klip unik", sum(len(s["shots"]) for s in plan), len(seen))
     return result

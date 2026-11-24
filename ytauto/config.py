@@ -140,7 +140,14 @@ class VoiceCfg(BaseModel):
 class VisualsCfg(BaseModel):
     # ai_image = gambar AI bergaya 3D per adegan (stok jadi cadangan); stock = footage Pixabay/Pexels saja
     mode: Literal["ai_image", "stock"] = "stock"
-    ai_providers: list[Literal["cloudflare", "pollinations"]] = Field(default_factory=lambda: ["cloudflare", "pollinations"])
+    ai_providers: list[Literal["gemini_image", "cloudflare", "pollinations"]] = Field(
+        default_factory=lambda: ["gemini_image", "cloudflare", "pollinations"])
+    # maskot orisinal channel: muncul di setiap adegan supaya video terasa seperti satu animasi
+    character: str = ("a small round friendly robot with a glossy cream-white body, a big curved dark visor "
+                      "face showing two glowing cyan oval eyes, short stubby arms and legs, and a tiny orange "
+                      "antenna on top")
+    background: str = "Plain solid soft pastel peach background, simple minimal set, soft studio lighting"
+    gemini_image_models: list[str] = Field(default_factory=lambda: ["gemini-2.5-flash-image"])
     cloudflare_model: str = "@cf/black-forest-labs/flux-1-schnell"
     ai_style: str = ("stylized 3D animation render, colorful animated explainer video style, soft global illumination, "
                      "clean simple shapes, expressive cartoon characters, cinematic lighting")

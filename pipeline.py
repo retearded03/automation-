@@ -114,6 +114,8 @@ def cmd_produce(cfg: Config, run_id: str, index: int, dry_run: bool, llm=None, y
                               style["seed"])
             result.update(clip_ids=vis["clip_ids"], ai_images=vis.get("ai_images", 0),
                           shots=sum(len(s["shots"]) for s in vis["segments"]))
+            if vis.get("new_mascot"):
+                shutil.copy2(vis["new_mascot"], report / "mascot.png")  # diadopsi ke repo oleh finalize
 
         with ctx.step("assemble"):
             asm = assemble.run(cfg, script, timings, vis, style, out)
@@ -159,6 +161,9 @@ def cmd_finalize(cfg: Config, run_id: str, dry_run: bool, telegram=None) -> int:
     results, plan_error, expected = collect(ctx.run_root)
     if not results and not plan_error:
         plan_error = {"failed_step": "plan", "error": "tidak ada hasil sama sekali (job plan gagal sebelum menulis laporan?)"}
+    from ytauto.ai_images import adopt_reference
+    if adopt_reference(cfg, ctx.run_root):
+        ctx.logger.info("maskot baru disimpan ke assets/character/mascot.png")
     uploaded = [r for r in results if r.get("status") == "uploaded"]
     if uploaded and not dry_run:
         history = History.load(cfg.path(cfg.paths.history_file))

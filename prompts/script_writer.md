@@ -28,11 +28,13 @@ RULES
    no textbook phrasing.
 4. Each segment is 1-3 short spoken sentences. Write numbers the way a narrator should say them
    (e.g. "about 3,000 meters"). No emojis, no hashtags, no stage directions inside the narration.
-5. For each segment write "scene": one vivid sentence describing an illustration of exactly what that
-   segment says, for an AI image generator in a stylized 3D animated explainer style: who/what is in frame,
-   the setting, the action, and the scale (e.g. "tiny workers standing beside a giant steel dam gate as water
-   rushes through"). Make consecutive scenes visually connected, like one animated story. No text, signs,
-   logos, brand names or real people's names in the scene.
+5. For each segment write "scene": one vivid sentence for an AI image generator describing what THE CHANNEL
+   MASCOT is doing in that moment and what is around it, so the picture shows exactly what the narration says.
+   The mascot is the star of every scene (do not describe its looks, that is added automatically); show it
+   reacting, pointing, holding, riding or standing next to the subject, with clear scale and a big expressive
+   emotion (e.g. "staring up in shock at a giant mirror on a mountain that reflects sunlight into a dark valley
+   town"). Consecutive scenes should feel like one short animated story. No text, signs, logos, brand names
+   or real people's names.
    Also give 2-3 concrete stock-footage search keywords (English, 1-3 words, things a camera
    can film, e.g. "oil rig ocean", "welding sparks"). Never brand names or people's names.
 6. List every factual claim you made in "claims" with the source id and the exact sentence from that
