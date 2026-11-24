@@ -206,3 +206,42 @@ def test_adopt_reference_copies_once(cfg, tmp_path):
     assert ai_images.adopt_reference(cfg, tmp_path / "work" / "r1") == ai_images.reference_path(cfg)
     assert ai_images.reference_path(cfg).exists()
     assert ai_images.adopt_reference(cfg, tmp_path / "work" / "r1") is None  # sudah ada -> tidak ditimpa
+
+
+@responses.activate
+def test_gemini_tries_next_image_model_on_quota(cfg, monkeypatch, tmp_path, no_sleep):
+    """Kasus nyata run 45345541557: gemini-2.5-flash-image 429, model gambar lain harus dicoba."""
+    monkeypatch.setenv("GEMINI_API_KEY", "GK")
+    cfg.visuals.gemini_image_models = ["gemini-2.5-flash-image"]
+    responses.add(responses.GET, f"{GEM}/models", json={"models": [
+        {"name": f"models/{m}", "supportedGenerationMethods": ["generateContent"]}
+        for m in ("gemini-2.5-flash-image", "gemini-3.1-flash-image")]})
+    for _ in range(2):
+        responses.add(responses.POST, f"{GEM}/models/gemini-2.5-flash-image:generateContent", status=429)
+    img = base64.b64encode(jpeg_bytes()).decode()
+    responses.add(responses.POST, f"{GEM}/models/gemini-3.1-flash-image:generateContent",
+                  json={"candidates": [{"content": {"parts": [{"inlineData": {"mimeType": "image/jpeg", "data": img}}]}}]})
+    responses.add(responses.POST, f"{GEM}/models/gemini-3.1-flash-image:generateContent",
+                  json={"candidates": [{"content": {"parts": [{"inlineData": {"mimeType": "image/jpeg", "data": img}}]}}]})
+    g = ai_images.GeminiImage(cfg)
+    g.generate("p", tmp_path / "a.jpg", 1)
+    g.generate("p", tmp_path / "b.jpg", 1)
+    calls_25 = sum("2.5-flash-image" in c.request.url and c.request.method == "POST" for c in responses.calls)
+    assert calls_25 == 2  # model yang kuotanya habis tidak dicoba lagi di gambar kedua
+    assert (tmp_path / "b.jpg").exists()
+
+
+@responses.activate
+def test_gemini_all_models_exhausted_fails_fast(cfg, monkeypatch, tmp_path, no_sleep):
+    monkeypatch.setenv("GEMINI_API_KEY", "GK")
+    cfg.visuals.gemini_image_models = ["m1"]
+    responses.add(responses.GET, f"{GEM}/models", json={"models": []})
+    for _ in range(2):
+        responses.add(responses.POST, f"{GEM}/models/m1:generateContent", status=429)
+    g = ai_images.GeminiImage(cfg)
+    with pytest.raises(ai_images.ImageGenError):
+        g.generate("p", tmp_path / "a.jpg", 1)
+    n = len(responses.calls)
+    with pytest.raises(ai_images.ImageGenError, match="kuota"):
+        g.generate("p", tmp_path / "b.jpg", 1)
+    assert len(responses.calls) == n  # tidak membuang waktu memanggil API lagi

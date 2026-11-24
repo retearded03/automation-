@@ -130,11 +130,21 @@ class GeminiImage:
         payload = {"contents": [{"role": "user", "parts": parts}],
                    "generationConfig": {"responseModalities": ["IMAGE"]}}
         last: Exception | None = None
-        for model in list(self.models()):
+        models = list(self.models())
+        if not models:
+            raise ImageGenError("tidak ada model gambar Gemini yang masih punya kuota")
+        for model in models:
             try:
                 data = http.post_json(f"{GEMINI_BASE}/models/{model}:generateContent", payload,
                                       headers={"x-goog-api-key": self.key}, session=self.session,
-                                      timeout=180, attempts=3, base_delay=5.0)
+                                      timeout=180, attempts=2, base_delay=5.0)
+            except RetryableError as e:
+                # 429 = kuota model ini habis (free tier sering "limit 0" untuk model gambar tertentu):
+                # coret model ini untuk sisa run dan coba model gambar berikutnya
+                last = e
+                self._models = [m for m in self._models if m != model]
+                log.warning("model gambar %s tidak bisa dipakai sekarang (%s), coba model lain", model, str(e)[:80])
+                continue
             except http.HTTPError as e:
                 last = e
                 if e.status in (400, 404):  # model tidak cocok / tidak ada: coba model berikutnya
