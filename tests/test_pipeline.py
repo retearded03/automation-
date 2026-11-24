@@ -29,6 +29,8 @@ def env(monkeypatch, cfg, fake_llm, tmp_path):
     calls = Calls()
     monkeypatch.setenv("YT_API_KEY", "k")
     monkeypatch.setattr(pipeline.trend_finder, "find_trends", lambda c, k: TRENDS)
+    monkeypatch.setattr(pipeline.idea_sources, "gather_seeds",
+                        lambda c, h, rng: [{"title": "Sun mirror", "hook": "a town built a mirror", "source": "x"}])
 
     def fake_script(c, llm, t, style, recent):
         if "REJECT" in t["title"]:

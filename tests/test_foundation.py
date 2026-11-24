@@ -337,7 +337,7 @@ def test_claude_auth_error_message():
 
 def test_all_prompts_render():
     common = dict(niche="n", audience="a", language="en")
-    render_prompt("topic_picker", **common, count=3, trends="[]", history="[]", today="2026-01-01")
+    render_prompt("topic_picker", **common, count=3, trends="[]", history="[]", today="2026-01-01", seeds="-")
     render_prompt("script_writer", **common, topic="{}", style="{}", target_words=130, min_segments=4,
                   max_segments=8, sources="S1", feedback="")
     render_prompt("fact_check", script="{}", sources="S1")

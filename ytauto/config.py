@@ -34,6 +34,15 @@ class TrendsCfg(BaseModel):
     max_trends_for_llm: int = 60
 
 
+class IdeasCfg(BaseModel):
+    # sub-halaman Wikipedia:Unusual articles yang dipakai sebagai bibit ide
+    unusual_categories: list[str] = Field(default_factory=lambda: [
+        "Science", "Technology, inventions and products", "Places and infrastructure",
+        "Mathematics and numbers", "Food", "History", "Language"])
+    seeds_for_llm: int = 40
+    candidates_per_video: int = 6  # kandidat yang diminta ke LLM per video, lalu dipilih yang skornya tertinggi
+
+
 class ScheduleCfg(BaseModel):
     videos_per_day: int = Field(1, ge=1, le=20)
     timezone: str = "America/New_York"
@@ -199,6 +208,7 @@ class PathsCfg(BaseModel):
 class Config(BaseModel):
     channel: ChannelCfg = Field(default_factory=ChannelCfg)
     trends: TrendsCfg = Field(default_factory=TrendsCfg)
+    ideas: IdeasCfg = Field(default_factory=IdeasCfg)
     schedule: ScheduleCfg = Field(default_factory=ScheduleCfg)
     upload: UploadCfg = Field(default_factory=UploadCfg)
     format: FormatCfg = Field(default_factory=FormatCfg)

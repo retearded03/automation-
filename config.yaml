@@ -4,8 +4,9 @@
 channel:
   name: "Built Curious"
   niche: >-
-    How things work: engineering, machines, infrastructure, manufacturing and
-    everyday science explained as short, surprising, accurate facts
+    Weird but true facts: bizarre inventions, strange engineering, odd places, counterintuitive
+    science and surprising stories behind everyday objects - each one a "wait, what?" moment,
+    explained in under 35 seconds and backed by sources
   language: "en"
   audience: "English-speaking viewers, primarily in the United States"
   category_id: "27"          # 27 = Education, 28 = Science & Technology
@@ -44,9 +45,9 @@ format:
   width: 1080
   height: 1920
   fps: 30
-  max_seconds: 58
+  max_seconds: 35                    # rata-rata durasi tonton Shorts ~16 detik: makin pendek makin baik
   min_seconds: 15
-  target_words: 135
+  target_words: 80
 
 llm:
   # gemini = gratis (key dari aistudio.google.com) | claude = berbayar (key dari console.anthropic.com)
@@ -79,7 +80,7 @@ llm:
 script:
   min_quality_score: 7
   min_segments: 4
-  max_segments: 8
+  max_segments: 7
   sources_per_video: 3
   max_source_chars: 6000
   max_attempts: 3
@@ -93,7 +94,7 @@ voice:
     - "en-US-AriaNeural"
     - "en-GB-RyanNeural"
     - "en-US-EmmaNeural"
-  base_rate_percent: 8
+  base_rate_percent: 10
   max_rate_percent: 25
 
 visuals:
@@ -104,8 +105,8 @@ visuals:
   cloudflare_model: "@cf/black-forest-labs/flux-1-schnell"
   # Dicoba berurutan; provider tanpa API key otomatis dilewati (cukup salah satu key).
   providers: ["pexels", "pixabay"]
-  seconds_per_shot: 3.2
-  max_shots_per_segment: 3
+  seconds_per_shot: 1.8             # ganti gambar tiap ~1,8 detik supaya penonton tidak swipe
+  max_shots_per_segment: 4
   avoid_reuse_days: 60
   max_download_mb: 80
 
@@ -141,7 +142,7 @@ styles:
     - {name: "lava", accent: "#FF5A1F", text: "#FFFFFF", shade: "#1A0500"}
     - {name: "mint", accent: "#5BFFB0", text: "#0B0B0B", shade: "#00140A"}
   thumbnail_layouts: ["top_band", "bottom_band", "center_outline", "corner_tag"]
-  hook_overlay: [true, false]
+  hook_overlay: [true]               # teks hook besar selalu muncul di frame pertama
 
 notify:
   telegram: true

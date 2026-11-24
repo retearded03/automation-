@@ -19,7 +19,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ytauto import assemble, notify, script_writer, trend_finder, uploader, visuals, voice
+from ytauto import assemble, idea_sources, notify, script_writer, trend_finder, uploader, visuals, voice
 from ytauto.config import Config, env, load_config
 from ytauto.context import RunContext, StepError, read_tail
 from ytauto.history import History
@@ -52,8 +52,16 @@ def cmd_plan(cfg: Config, run_id: str, dry_run: bool, count: int | None = None, 
         with ctx.step("trend_finder"):
             trends = trend_finder.find_trends(cfg, env("YT_API_KEY"))
             ctx.write_json("trends.json", trends)
+        with ctx.step("idea_sources"):
+            try:
+                import random as _random
+                seeds = idea_sources.gather_seeds(cfg, history, _random.Random(run_id))
+            except Exception as e:  # noqa: BLE001 - tanpa bibit pun pipeline tetap bisa jalan
+                ctx.logger.warning("bibit ide gagal diambil: %s", e)
+                seeds = []
+            ctx.write_json("seeds.json", seeds)
         with ctx.step("topic_picker"):
-            plan = build_plan(cfg, llm or get_llm(cfg), trends, history, run_id, count)
+            plan = build_plan(cfg, llm or get_llm(cfg), trends, history, run_id, count, seeds=seeds)
             ctx.write_json("plan.json", plan)
     except StepError as e:
         ctx.write_json("plan_error.json", {"status": "failed", "failed_step": e.step, "error": str(e.cause),

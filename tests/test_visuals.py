@@ -6,6 +6,16 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 import responses
 
+@pytest.fixture(autouse=True)
+def classic_pacing(cfg):
+    """Tes ini ditulis untuk tempo lama; kunci nilainya supaya tidak bergantung pada config proyek."""
+    cfg.format.target_words = 135
+    cfg.format.max_seconds = 58
+    cfg.script.max_segments = 8
+    cfg.visuals.seconds_per_shot = 3.2
+    cfg.visuals.max_shots_per_segment = 3
+
+
 from ytauto import visuals
 
 

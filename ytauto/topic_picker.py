@@ -24,7 +24,8 @@ class TopicError(Exception):
 # Saringan berbasis aturan, dijalankan sebelum dan sesudah LLM.
 UNSAFE_PATTERNS = [
     r"\bkill(ed|ing|s)?\b", r"\bdead\b", r"\bdeath\b", r"\bdies?\b", r"\bdied\b", r"\bmurder", r"\bshooting\b",
-    r"\bcrash victims?\b", r"\btragedy\b", r"\bwar\b", r"\bterror", r"\bbomb", r"\bhostage", r"\bmassacre",
+    r"\bcrash victims?\b", r"\btragedy\b", r"\btragic", r"\bdisaster", r"\bhurricane", r"\bearthquake",
+    r"\btsunami", r"\bgenocide", r"\bslave", r"\babuse", r"\bexecut", r"\bsex", r"\bwar\b", r"\bterror", r"\bbomb", r"\bhostage", r"\bmassacre",
     r"\belection", r"\bpresident\b", r"\bcongress\b", r"\bparliament\b", r"\bsenat", r"\bpolitic", r"\btrump\b",
     r"\bbiden\b", r"\bpolice\b", r"\bsuicide\b", r"\babortion\b", r"\breligio",
     r"\bofficial (music )?video\b", r"\bofficial trailer\b", r"\blyrics?\b", r"\bft\.\s", r"\bfeat\.\s",
@@ -48,6 +49,14 @@ def compact_trends(trends: list[dict]) -> str:
         tags = ", ".join(t.get("tags", [])[:6])
         lines.append(f"{t['id']} | {t['title']} | {tags} | cat {t['category_id']} | {t['views_per_hour']:.0f}/h")
     return "\n".join(lines) or "(no relevant trending videos today - use strong evergreen topics)"
+
+
+def topic_score(t: dict) -> float:
+    s = t.get("scores") or {}
+    try:
+        return float(s.get("hook", 0)) * 1.5 + float(s.get("weird", 0)) + float(s.get("explainable", 0)) * 0.8
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def validate_topics(raw: list[dict], history: History, threshold: float = 0.45) -> list[dict]:
@@ -101,10 +110,13 @@ def choose_styles(config: Config, history: History, count: int, rng: random.Rand
 
 
 def pick_topics(config: Config, llm: LLM, trends: list[dict], history: History, count: int,
-                today: str) -> list[dict]:
-    """Minta 2x lipat topik (utama + cadangan), lalu saring."""
+                today: str, seeds: list[dict] | None = None) -> list[dict]:
+    """Minta banyak kandidat, saring, lalu ambil yang skornya tertinggi (utama + cadangan)."""
+    from .idea_sources import format_seeds
+
     candidates = prefilter_trends(trends, config.trends.max_trends_for_llm)
     want = count * 2
+    ask = max(want, count * config.ideas.candidates_per_video)
     accepted: list[dict] = []
     for attempt in range(3):
         prompt = render_prompt(
@@ -114,8 +126,9 @@ def pick_topics(config: Config, llm: LLM, trends: list[dict], history: History, 
             language=config.channel.language,
             today=today,
             trends=compact_trends(candidates),
+            seeds=format_seeds(seeds or []),
             history="\n".join(f"- {t}" for t in history.recent_topics(150) + [a["title"] for a in accepted]) or "(none yet)",
-            count=str(want - len(accepted) + 2),
+            count=str(max(ask - len(accepted), count + 2)),
         )
         data = llm.complete_json("You are a careful, safety-minded editor. Output JSON only.", prompt,
                                  step="topic_picker")
@@ -123,19 +136,22 @@ def pick_topics(config: Config, llm: LLM, trends: list[dict], history: History, 
         new = validate_topics(raw or [], History(history.path, {"videos": history.videos + [
             {"topic": a["angle"], "title": a["title"]} for a in accepted]}))
         accepted.extend(new)
-        if len(accepted) >= want:
+        if len(accepted) >= want:  # satu panggilan biasanya cukup; kandidat dipilih lewat skor
             break
         log.info("baru %d/%d topik layak, minta lagi (percobaan %d)", len(accepted), want, attempt + 1)
     if len(accepted) < count:
         raise TopicError(f"hanya {len(accepted)} topik layak, butuh {count}")
+    accepted.sort(key=topic_score, reverse=True)
+    for t in accepted[:want]:
+        log.info("topik terpilih (skor %.1f): %s", topic_score(t), t["title"])
     return accepted[:want]
 
 
 def build_plan(config: Config, llm: LLM, trends: list[dict], history: History, run_id: str,
-               count: int | None = None, now: datetime | None = None) -> dict:
+               count: int | None = None, now: datetime | None = None, seeds: list[dict] | None = None) -> dict:
     now = now or datetime.now(timezone.utc)
     count = count or config.schedule.videos_per_day
-    topics = pick_topics(config, llm, trends, history, count, now.date().isoformat())
+    topics = pick_topics(config, llm, trends, history, count, now.date().isoformat(), seeds=seeds)
     primaries, backups = topics[:count], topics[count:]
     rng = random.Random(f"{run_id}-styles")
     styles = choose_styles(config, history, count, rng)
