@@ -195,6 +195,25 @@
       ],
       "publish_at": "2026-11-23T17:00:00.000Z",
       "created_at": "2026-11-23T08:29:45+00:00"
+    },
+    {
+      "run_id": "45354746220-1",
+      "video_id": "1rYd7A9vxu0",
+      "url": "https://youtube.com/shorts/1rYd7A9vxu0",
+      "title": "The Mineral Made Of Falcon Poop",
+      "topic": "The Bird Feces Mineral Explains how the mineral tinnunculite forms exclusively from the chemical reaction of falcon droppings on uric rock.",
+      "style": {
+        "hook_type": "imagine scenario: put the viewer inside the situation",
+        "structure": "mini story: a concrete moment that reveals how the thing works",
+        "caption_style": "single_word",
+        "palette": "electric",
+        "thumbnail_layout": "bottom_band",
+        "hook_overlay": true,
+        "voice": "en-US-AriaNeural"
+      },
+      "clip_ids": [],
+      "publish_at": "2026-11-24T13:00:00.000Z",
+      "created_at": "2026-11-24T08:28:05+00:00"
     }
   ]
 }
