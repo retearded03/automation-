@@ -23,7 +23,7 @@ from ytauto import assemble, notify, script_writer, trend_finder, uploader, visu
 from ytauto.config import Config, env, load_config
 from ytauto.context import RunContext, StepError, read_tail
 from ytauto.history import History
-from ytauto.llm import get_llm
+from ytauto.llm import get_llm, llm_label
 from ytauto.topic_picker import build_plan
 
 
@@ -94,7 +94,7 @@ def cmd_produce(cfg: Config, run_id: str, index: int, dry_run: bool, llm=None, y
                 raise last_err or script_writer.ScriptRejected("tidak ada topik")
             ctx.write_json("script.json", script)
             result.update(topic=script["topic"]["title"], topic_angle=script["topic"].get("angle", ""),
-                          title=script["title"], quality=script["quality"].get("overall"))
+                          title=script["title"], quality=script["quality"].get("overall"), llm=llm_label(llm))
 
         with ctx.step("voice"):
             timings = voice.run(cfg, script, style["voice"], out)
@@ -102,7 +102,8 @@ def cmd_produce(cfg: Config, run_id: str, index: int, dry_run: bool, llm=None, y
         with ctx.step("visuals"):
             vis = visuals.run(cfg, script, timings, out, history.used_clip_ids(cfg.visuals.avoid_reuse_days),
                               style["seed"])
-            result.update(clip_ids=vis["clip_ids"])
+            result.update(clip_ids=vis["clip_ids"], ai_images=vis.get("ai_images", 0),
+                          shots=sum(len(s["shots"]) for s in vis["segments"]))
 
         with ctx.step("assemble"):
             asm = assemble.run(cfg, script, timings, vis, style, out)

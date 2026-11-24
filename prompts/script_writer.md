@@ -22,7 +22,12 @@ RULES
    is the hook and must grab attention in under 3 seconds. No "In this video", no "Hey guys", no "Subscribe".
 4. Each segment is 1-3 short spoken sentences. Write numbers the way a narrator should say them
    (e.g. "about 3,000 meters"). No emojis, no hashtags, no stage directions inside the narration.
-5. For each segment give 2-3 concrete stock-footage search keywords (English, 1-3 words, things a camera
+5. For each segment write "scene": one vivid sentence describing an illustration of exactly what that
+   segment says, for an AI image generator in a stylized 3D animated explainer style: who/what is in frame,
+   the setting, the action, and the scale (e.g. "tiny workers standing beside a giant steel dam gate as water
+   rushes through"). Make consecutive scenes visually connected, like one animated story. No text, signs,
+   logos, brand names or real people's names in the scene.
+   Also give 2-3 concrete stock-footage search keywords (English, 1-3 words, things a camera
    can film, e.g. "oil rig ocean", "welding sparks"). Never brand names or people's names.
 6. List every factual claim you made in "claims" with the source id and the exact sentence from that
    source that supports it ("evidence" must be copied verbatim from the source text).
@@ -34,7 +39,7 @@ Return JSON only:
   "title": "...",
   "thumbnail_text": "...",
   "segments": [
-    {"text": "narration", "claims": ["C1"], "visual_keywords": ["...", "..."]}
+    {"text": "narration", "claims": ["C1"], "scene": "one-sentence illustration description", "visual_keywords": ["...", "..."]}
   ],
   "claims": [
     {"id": "C1", "text": "the claim in your words", "source": "S1", "evidence": "verbatim sentence from S1"}

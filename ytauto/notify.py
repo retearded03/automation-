@@ -47,6 +47,9 @@ def format_summary(results: list[dict], run_id: str, dry_run: bool, plan_error: 
             lines.append(f"\n🧪 <b>#{n}</b> {title} · {esc(r.get('duration'))} detik")
         else:
             lines.append(f"\n❌ <b>#{n}</b> {title}\nLangkah: {esc(r.get('failed_step'))} · {esc(str(r.get('error', ''))[:300])}")
+        if r.get("llm") or r.get("shots"):
+            vis = f"gambar AI {r.get('ai_images', 0)}/{r.get('shots', 0)} shot" if r.get("shots") else ""
+            lines.append(f"🤖 LLM: {esc(r.get('llm', '?'))}" + (f" · 🎨 {esc(vis)}" if vis else ""))
         for w in r.get("warnings", []):
             lines.append(f"⚠️ {esc(w)}")
     if expected and len(results) < expected and not plan_error:

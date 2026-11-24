@@ -241,17 +241,31 @@ class ChainClient:
 
     def __init__(self, clients: list[tuple[str, LLM]]):
         self.clients = clients
+        self.used: list[str] = []
 
     def complete_json(self, system: str, prompt: str, temperature: float | None = None,
                       step: str | None = None) -> Any:
         last: Exception | None = None
         for name, client in self.clients:
             try:
-                return client.complete_json(system, prompt, temperature, step=step)
+                out = client.complete_json(system, prompt, temperature, step=step)
+                model = getattr(client, "model", "")
+                self.used.append(name if (not model or model in name) else f"{name}:{model}")
+                return out
             except (LLMError, RetryableError, http.HTTPError) as e:
                 last = e
                 log.warning("LLM %s gagal (%s), coba penyedia berikutnya", name, str(e)[:200])
         raise LLMError(f"semua penyedia LLM gagal; terakhir: {last}")
+
+
+def llm_label(llm) -> str:
+    """Nama penyedia/model yang dipakai, untuk laporan Telegram."""
+    used = getattr(llm, "used", None)
+    if used:
+        return ", ".join(dict.fromkeys(used))
+    if isinstance(llm, StepRouter):
+        return ", ".join(dict.fromkeys(getattr(c, "model", "?") for c in [llm.default, *llm.clients.values()]))
+    return getattr(llm, "model", type(llm).__name__)
 
 
 class StepRouter:

@@ -12,11 +12,26 @@ STOPWORDS = {
     "do", "does", "did", "can", "you", "your", "it", "its", "this", "that", "with", "from", "by",
     "at", "as", "be", "into", "really", "actually", "ever", "never", "most", "so", "they", "we",
     "work", "works", "made", "make", "fact", "facts",
+    # kata umum di judul/angle yang tidak menunjukkan topik
+    "explain", "explains", "explained", "inside", "without", "using", "use", "uses", "tiny", "huge", "giant",
+    "secret", "every", "thousand", "thousands", "million", "billion", "time", "times", "second", "seconds",
+    "way", "ways", "thing", "things", "doesn", "don", "isn", "just", "like", "about", "their", "them", "there",
+    "these", "those", "than", "then", "when", "where", "which", "who", "while", "through", "over", "under",
+    "after", "before",
+}
+
+
+SYNONYMS = {
+    "smartphone": "phone", "smartphones": "phone", "mobile": "phone", "cellphone": "phone",
+    "chip": "chip", "microchip": "chip", "processor": "chip", "cpu": "chip", "semiconductor": "chip",
+    "cooling": "cool", "cooler": "cool", "cooled": "cool", "heat": "cool", "thermal": "cool",
+    "car": "car", "cars": "car", "vehicle": "car", "vehicles": "car", "automobile": "car",
+    "plane": "plane", "airplane": "plane", "aircraft": "plane", "jet": "plane",
 }
 
 
 def tokens(text: str) -> set[str]:
-    words = re.findall(r"[a-z0-9]+", text.lower())
+    words = [SYNONYMS.get(w, w) for w in re.findall(r"[a-z0-9]+", text.lower())]
     out = set()
     for w in words:
         if w in STOPWORDS or len(w) < 3:
@@ -35,6 +50,21 @@ def similarity(a: str, b: str) -> float:
     if not ta or not tb:
         return 0.0
     return len(ta & tb) / len(ta | tb)
+
+
+def overlap(a: str, b: str) -> float:
+    """Porsi kata kunci teks yang lebih pendek yang juga ada di teks lain (0-1).
+
+    Lebih peka daripada Jaccard untuk topik sama yang ditulis dengan panjang berbeda.
+    Kalibrasi dari history asli: topik dobel 0,54; topik berbeda yang paling mirip 0,31.
+    """
+    ta, tb = tokens(a), tokens(b)
+    if len(ta) < 3 or len(tb) < 3:
+        return 0.0
+    return len(ta & tb) / min(len(ta), len(tb))
+
+
+OVERLAP_THRESHOLD = 0.45
 
 
 def style_key(style: dict) -> str:
@@ -69,10 +99,18 @@ class History:
     def recent_titles(self, n: int = 150) -> list[str]:
         return [v.get("title") or v.get("topic", "") for v in self.videos[-n:]]
 
+    def recent_topics(self, n: int = 150) -> list[str]:
+        """Judul + sudut bahasan, supaya LLM mengenali topik sama yang judulnya berbeda."""
+        out = []
+        for v in self.videos[-n:]:
+            title, topic = v.get("title", ""), v.get("topic", "")
+            out.append(f"{title} (topic: {topic})" if topic and topic != title else title or topic)
+        return out
+
     def is_duplicate(self, text: str, threshold: float = 0.5, extra: list[str] | None = None,
                      title: str | None = None, title_threshold: float = 0.6) -> bool:
         for other in self.topic_texts() + (extra or []):
-            if similarity(text, other) >= threshold:
+            if similarity(text, other) >= threshold or overlap(text, other) >= OVERLAP_THRESHOLD:
                 return True
         if title:
             others = [v.get("title", "") for v in self.videos] + (extra or [])

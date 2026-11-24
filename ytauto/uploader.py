@@ -62,7 +62,8 @@ def build_description(script: dict, attribution: list[dict], config: Config) -> 
     if script.get("sources"):
         parts.append("Sources:\n" + "\n".join(f"- {_strip(s['title'])} (Wikipedia): {s['url']}" for s in script["sources"]))
     if attribution:
-        parts.append("Footage:\n" + "\n".join(f"- {_strip(a['text'])}: {a['url']}" for a in attribution))
+        parts.append("Visuals:\n" + "\n".join(
+            f"- {_strip(a['text'])}" + (f": {a['url']}" if a.get("url") else "") for a in attribution))
     parts.append("Narration uses a synthetic text-to-speech voice. Facts were checked against the sources above.")
     desc = "\n\n".join(p for p in parts if p)
     while len(desc.encode("utf-8")) > 4900:  # batas YouTube 5000 byte

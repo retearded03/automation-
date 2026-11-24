@@ -191,10 +191,18 @@ class Finder:
 def run(config: Config, script: dict, timings: dict, out_dir: Path, used_ids: set[str], seed: int,
         session=None) -> dict:
     rng = random.Random(seed)
-    finder = Finder(config, used_ids, rng, session)
+    finder: Finder | None = None
     clips_dir = out_dir / "clips"
     clips_dir.mkdir(parents=True, exist_ok=True)
     max_bytes = config.visuals.max_download_mb * 1024 * 1024
+    gen = None
+    if config.visuals.mode == "ai_image":
+        from .ai_images import ImageGenerator, build_prompt
+        gen = ImageGenerator(config, session)
+        if not gen.providers:
+            log.warning("tidak ada penyedia gambar AI aktif, pakai footage stok")
+            gen = None
+    ai_count = 0
     plan = []
     for seg, tm in zip(script["segments"], timings["segments"]):
         n = shots_for(tm["duration"], config)
@@ -202,6 +210,21 @@ def run(config: Config, script: dict, timings: dict, out_dir: Path, used_ids: se
         kws = list(seg["visual_keywords"])
         shots = []
         for k in range(n):
+            if gen is not None:
+                scene = seg.get("scene") or ", ".join(kws)
+                path = clips_dir / f"seg{tm['index']:02d}_{k}_ai.jpg"
+                try:
+                    provider, _ = gen.generate(build_prompt(config, scene, k), path, seed + tm["index"] * 10 + k)
+                    shots.append({"provider": provider, "id": f"ai-{tm['index']}-{k}", "kind": "photo",
+                                  "url": "", "width": 0, "height": 0, "duration": 0.0, "page_url": "",
+                                  "author": provider, "author_url": "", "key": f"ai:{provider}",
+                                  "path": str(path), "shot_duration": round(shot_dur, 3)})
+                    ai_count += 1
+                    continue
+                except Exception as e:  # noqa: BLE001 - jatuh ke footage stok untuk shot ini
+                    log.warning("shot %d.%d pakai footage stok: %s", tm["index"], k, str(e)[:150])
+            if finder is None:
+                finder = Finder(config, used_ids, rng, session)
             rotated = kws[k % len(kws):] + kws[: k % len(kws)]  # tiap shot mulai dari kata kunci berbeda
             c = finder.find(rotated, shot_dur)
             ext = ".mp4" if c.kind == "video" else ".jpg"
@@ -217,10 +240,15 @@ def run(config: Config, script: dict, timings: dict, out_dir: Path, used_ids: se
             if s["key"] in seen:
                 continue
             seen.add(s["key"])
+            if s["key"].startswith("ai:"):
+                attribution.append({"text": f"Illustrations generated with AI ({s['provider']})",
+                                    "url": "", "key": s["key"]})
+                continue
             site = "Pexels" if s["provider"] == "pexels" else "Pixabay"
             attribution.append({"text": f"{'Photo' if s['kind'] == 'photo' else 'Video'} by {s['author']} on {site}",
                                 "url": s["page_url"], "key": s["key"]})
-    result = {"segments": plan, "attribution": attribution, "clip_ids": sorted(seen)}
+    result = {"segments": plan, "attribution": attribution,
+              "clip_ids": sorted(k for k in seen if not k.startswith("ai:")), "ai_images": ai_count}
     (out_dir / "visuals.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
     log.info("visual: %d shot dari %d klip unik", sum(len(s["shots"]) for s in plan), len(seen))
     return result

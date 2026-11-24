@@ -115,7 +115,8 @@ def normalize_script(raw: dict, config: Config) -> dict:
         if not text:
             continue
         kws = [k.strip() for k in (s.get("visual_keywords") or []) if isinstance(k, str) and k.strip()]
-        segs.append({"text": text, "claims": [str(c) for c in (s.get("claims") or [])],
+        scene = s.get("scene") if isinstance(s.get("scene"), str) else ""
+        segs.append({"text": text, "claims": [str(c) for c in (s.get("claims") or [])], "scene": scene.strip(),
                      "visual_keywords": kws[:3] or list(config.channel.fallback_visual_keywords[:2])})
     claims = [c for c in (raw.get("claims") or []) if isinstance(c, dict) and c.get("id")]
     return {

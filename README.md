@@ -132,7 +132,9 @@ Repo publik paling aman dari sisi menit Actions. Secret tetap tidak terlihat ole
 | Secret | Cara mendapatkan |
 |---|---|
 | `LLM_API_KEY` | **Gemini (default, gratis):** <https://aistudio.google.com/apikey> → *Create API key*. Kalau kamu mengganti `llm.provider: claude` di config (berbayar), isi dengan key dari <https://console.anthropic.com/>. |
-| `PIXABAY_API_KEY` | **Sumber footage utama.** Daftar di <https://pixabay.com/accounts/register/>, lalu buka <https://pixabay.com/api/docs/>; key ada di bagian *Parameters*. |
+| `CF_ACCOUNT_ID` + `CF_API_TOKEN` | **Gambar AI bergaya 3D (sumber visual utama).** Daftar gratis di <https://dash.cloudflare.com/sign-up>. *Account ID* ada di halaman *Workers & Pages* (kolom kanan). Token: *My Profile → API Tokens → Create Token → template "Workers AI"* → *Create*. Kuota gratis harian, tanpa kartu kredit. Tanpa kedua secret ini, gambar dibuat lewat Pollinations (lebih lambat, kualitas lebih rendah). |
+| `PIXABAY_API_KEY` | **Cadangan visual** (footage stok kalau gambar AI gagal). Daftar di <https://pixabay.com/accounts/register/>, lalu buka <https://pixabay.com/api/docs/>; key ada di bagian *Parameters*. |
+| `CENTAI_API_KEY` / `GROQ_API_KEY` | *(opsional)* LLM cadangan kalau Gemini overload. |
 | `PEXELS_API_KEY` | *(opsional)* <https://www.pexels.com/api/> → *Your API Key*. Pexels sempat menutup pendaftaran key baru; kalau kamu sudah punya key, Pexels dipakai lebih dulu karena punya lebih banyak video vertikal. |
 
 Minimal **salah satu** dari `PIXABAY_API_KEY` / `PEXELS_API_KEY` harus diisi.
@@ -187,6 +189,7 @@ Hasilnya ada di `work/<run-id>/video_0/` (`final.mp4`, `thumbnail.jpg`, `script.
 | `schedule.publish_slots` + `timezone` | Jam tayang di zona waktu penonton. Otomatis menyesuaikan jam musim panas AS. Setelah channel punya data, sesuaikan dengan YouTube Analytics → *When your viewers are on YouTube*. |
 | `upload.privacy_status` | `scheduled` (private + publishAt, default), `private`, `unlisted`, atau `public`. |
 | `upload.contains_synthetic_media` | `false`: footage asli + narator TTS generik yang tidak meniru orang nyata. Ubah ke `true` kalau menambahkan visual atau suara realistis buatan AI. |
+| `visuals.mode` / `ai_style` | `ai_image` (default): satu ilustrasi AI bergaya animasi 3D per adegan, ditulis LLM sesuai isi narasi, lalu diberi efek zoom/pan. `stock`: footage Pixabay/Pexels saja. Ubah `ai_style` untuk mengganti gaya gambar. |
 | `trends.regions` / `category_ids` | Sumber sinyal tren (US, GB, CA, AU; kategori Sains & Teknologi, Pendidikan, Otomotif). |
 | `llm.provider` | `claude` (default) atau `gemini` (gratis). `LLM_API_KEY` harus sesuai provider. |
 | `llm.claude_steps` | Model & effort **per langkah** (`topic_picker`, `script_writer`, `fact_check`, `quality_gate`). Default: Sonnet 5.5 untuk topik & naskah, Haiku 5.5 untuk cek fakta & penilaian. Naikkan `script_writer` ke `claude-opus-5-5` kalau ingin naskah lebih tajam (biaya naik ±3x). |

@@ -127,6 +127,13 @@ class VoiceCfg(BaseModel):
 
 
 class VisualsCfg(BaseModel):
+    # ai_image = gambar AI bergaya 3D per adegan (stok jadi cadangan); stock = footage Pixabay/Pexels saja
+    mode: Literal["ai_image", "stock"] = "stock"
+    ai_providers: list[Literal["cloudflare", "pollinations"]] = Field(default_factory=lambda: ["cloudflare", "pollinations"])
+    cloudflare_model: str = "@cf/black-forest-labs/flux-1-schnell"
+    ai_style: str = ("stylized 3D animation render, colorful animated explainer video style, soft global illumination, "
+                     "clean simple shapes, expressive cartoon characters, cinematic lighting")
+    ai_negative: str = "no text, no letters, no logos, no watermark"
     providers: list[Literal["pexels", "pixabay"]] = Field(default_factory=lambda: ["pexels", "pixabay"])
     seconds_per_shot: float = 3.2
     max_shots_per_segment: int = 3

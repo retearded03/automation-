@@ -114,7 +114,7 @@ def pick_topics(config: Config, llm: LLM, trends: list[dict], history: History, 
             language=config.channel.language,
             today=today,
             trends=compact_trends(candidates),
-            history="\n".join(f"- {t}" for t in history.recent_titles(150) + [a["title"] for a in accepted]) or "(none yet)",
+            history="\n".join(f"- {t}" for t in history.recent_topics(150) + [a["title"] for a in accepted]) or "(none yet)",
             count=str(want - len(accepted) + 2),
         )
         data = llm.complete_json("You are a careful, safety-minded editor. Output JSON only.", prompt,

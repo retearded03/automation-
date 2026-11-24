@@ -95,6 +95,11 @@ voice:
   max_rate_percent: 25
 
 visuals:
+  # ai_image = ilustrasi AI bergaya animasi 3D per adegan (footage stok jadi cadangan)
+  # stock    = footage Pixabay/Pexels saja
+  mode: "ai_image"
+  ai_providers: ["cloudflare", "pollinations"]   # cloudflare butuh secret CF_ACCOUNT_ID + CF_API_TOKEN
+  cloudflare_model: "@cf/black-forest-labs/flux-1-schnell"
   # Dicoba berurutan; provider tanpa API key otomatis dilewati (cukup salah satu key).
   providers: ["pexels", "pixabay"]
   seconds_per_shot: 3.2
