@@ -117,7 +117,9 @@ class ScriptCfg(BaseModel):
     max_segments: int = 8
     sources_per_video: int = 3
     max_source_chars: int = 6000
-    max_attempts: int = 2
+    max_attempts: int = 3
+    # kalau tidak ada draf yang mencapai min_quality_score, draf terbaik tetap dipakai asal >= nilai ini
+    min_acceptable_score: float = 5
 
 
 class VoiceCfg(BaseModel):

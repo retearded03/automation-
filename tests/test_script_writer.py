@@ -149,10 +149,30 @@ def test_hook_failure_triggers_rewrite_then_succeeds(cfg, fake_llm):
 @responses.activate
 def test_quality_gate_rejects(cfg, fake_llm):
     mock_wiki()
-    bad = {"overall": 4, "main_weakness": "generic"}
-    llm = fake_llm(draft(), all_supported, bad, draft(), all_supported, bad)
+    bad = {"overall": 4, "main_weakness": "generic"}  # di bawah batas bawah (5) -> tetap ditolak
+    llm = fake_llm(*[draft(), all_supported, bad] * 3)
     with pytest.raises(sw.QualityError):
         sw.produce_script(cfg, llm, TOPIC, STYLE, recent_titles=["Old title"])
+    assert "punchy, surprising hook" in llm.calls[3]["prompt"]  # umpan balik untuk menulis ulang
+
+
+@responses.activate
+def test_best_draft_used_when_close_to_target(cfg, fake_llm):
+    """Kasus nyata: semua draf di bawah 7, tapi draf terbaik (6) tetap dipakai dengan peringatan."""
+    mock_wiki()
+    llm = fake_llm(draft(), all_supported, {"overall": 5, "main_weakness": "slow"},
+                   draft(), all_supported, {"overall": 6, "main_weakness": "ok-ish"},
+                   draft(), all_supported, {"overall": 3, "main_weakness": "dry"})
+    s = sw.produce_script(cfg, llm, TOPIC, STYLE, recent_titles=[])
+    assert s["quality"]["overall"] == 6
+    assert "6.0" in s["quality_warning"] and s["sources"]
+
+
+def test_hook_rule_in_prompt():
+    from ytauto.llm import render_prompt
+    p = render_prompt("script_writer", niche="n", audience="a", language="en", topic="{}", style="{}",
+                      target_words="130", min_segments="4", max_segments="8", sources="S1", feedback="")
+    assert "under 15 words" in p and "Picture yourself" in p
 
 
 @responses.activate

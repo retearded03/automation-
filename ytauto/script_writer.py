@@ -35,7 +35,9 @@ class FactCheckError(ScriptRejected):
 
 
 class QualityError(ScriptRejected):
-    pass
+    def __init__(self, message: str, score: dict | None = None):
+        super().__init__(message)
+        self.score = score or {}
 
 
 # ---------------------------------------------------------------- riset
@@ -238,7 +240,8 @@ def quality_gate(config: Config, llm: LLM, script: dict, recent_titles: list[str
         overall = 0.0
     score["overall"] = overall
     if overall < config.script.min_quality_score:
-        raise QualityError(f"skor kualitas {overall:.1f} < {config.script.min_quality_score}: {score.get('main_weakness', '')}")
+        raise QualityError(f"skor kualitas {overall:.1f} < {config.script.min_quality_score}: {score.get('main_weakness', '')}",
+                           score=score)
     return score
 
 
@@ -248,6 +251,7 @@ def produce_script(config: Config, llm: LLM, topic: dict, style: dict, recent_ti
     sources = gather_sources(config, topic, session=session)
     feedback = ""
     last_error: ScriptRejected | None = None
+    best: tuple[float, dict, dict, dict] | None = None  # (skor, naskah, laporan cek fakta, skor detail)
     target = config.format.target_words
     for attempt in range(1, config.script.max_attempts + 1):
         log.info("menulis naskah (percobaan %d)", attempt)
@@ -265,16 +269,34 @@ def produce_script(config: Config, llm: LLM, topic: dict, style: dict, recent_ti
             last_error = e
             continue
         except QualityError as e:
-            feedback = f"An editor rejected the draft: {e}. Make the hook sharper and the angle more original."
+            feedback = (f"An editor rejected the draft: {e}. Rewrite it so the FIRST sentence is a punchy, "
+                        "surprising hook (a startling number, a bold claim, or a direct question), keep sentences "
+                        "short and conversational, and make the angle more original.")
             last_error = e
+            overall = float(e.score.get("overall", 0) or 0)
+            if best is None or overall > best[0]:
+                best = (overall, checked, report, e.score)
             continue
-        checked.update({
-            "sources": [{k: s[k] for k in ("id", "title", "url")} for s in sources],
-            "fact_check": report,
-            "quality": quality,
-            "word_count": word_count(checked),
-            "topic": topic,
-            "style": style,
-        })
-        return checked
+        return _finalize(checked, sources, report, quality, topic, style)
+    floor = config.script.min_acceptable_score
+    if best is not None and best[0] >= floor:
+        overall, checked, report, quality = best
+        log.warning("tidak ada draf yang mencapai %.1f; pakai draf terbaik (skor %.1f)",
+                    config.script.min_quality_score, overall)
+        out = _finalize(checked, sources, report, quality, topic, style)
+        out["quality_warning"] = (f"skor kualitas naskah {overall:.1f} di bawah target "
+                                  f"{config.script.min_quality_score:g} (draf terbaik dipakai)")
+        return out
     raise last_error or ScriptRejected("naskah gagal dibuat")
+
+
+def _finalize(checked: dict, sources: list[dict], report: dict, quality: dict, topic: dict, style: dict) -> dict:
+    checked.update({
+        "sources": [{k: s[k] for k in ("id", "title", "url")} for s in sources],
+        "fact_check": report,
+        "quality": quality,
+        "word_count": word_count(checked),
+        "topic": topic,
+        "style": style,
+    })
+    return checked

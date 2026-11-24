@@ -19,7 +19,13 @@ RULES
 2. Add real value: explain the mechanism clearly, give scale through comparisons, and end with a
    takeaway or a thought-provoking line. Do not copy sentences from the sources; rephrase in your own voice.
 3. Length: about $target_words words in total ($min_segments to $max_segments segments). The first segment
-   is the hook and must grab attention in under 3 seconds. No "In this video", no "Hey guys", no "Subscribe".
+   is the hook and must grab attention in under 3 seconds: ONE short sentence (under 15 words) that states
+   the most surprising fact or a bold, curious question. Strong examples of the shape (do not copy them):
+   "This bridge is designed to move almost a meter in the wind.", "Your phone is boiling water right now."
+   Weak hooks to avoid: slow scene-setting ("Picture yourself...", "Have you ever wondered..."), definitions,
+   and history openers. No "In this video", no "Hey guys", no "Subscribe".
+   Write like a sharp, slightly playful narrator talking to a friend: short sentences, concrete images,
+   no textbook phrasing.
 4. Each segment is 1-3 short spoken sentences. Write numbers the way a narrator should say them
    (e.g. "about 3,000 meters"). No emojis, no hashtags, no stage directions inside the narration.
 5. For each segment write "scene": one vivid sentence describing an illustration of exactly what that

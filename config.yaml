@@ -82,7 +82,9 @@ script:
   max_segments: 8
   sources_per_video: 3
   max_source_chars: 6000
-  max_attempts: 2
+  max_attempts: 3
+  # draf terbaik tetap dipakai (dengan peringatan di Telegram) kalau skornya minimal segini
+  min_acceptable_score: 5
 
 voice:
   voices:

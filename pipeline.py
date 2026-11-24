@@ -95,6 +95,8 @@ def cmd_produce(cfg: Config, run_id: str, index: int, dry_run: bool, llm=None, y
             ctx.write_json("script.json", script)
             result.update(topic=script["topic"]["title"], topic_angle=script["topic"].get("angle", ""),
                           title=script["title"], quality=script["quality"].get("overall"), llm=llm_label(llm))
+            if script.get("quality_warning"):
+                result["warnings"].append(script["quality_warning"])
 
         with ctx.step("voice"):
             timings = voice.run(cfg, script, style["voice"], out)

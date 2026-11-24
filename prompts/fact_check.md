@@ -10,8 +10,8 @@ For every claim, decide whether the cited source text clearly supports it (same 
 "Partially supported", "plausible" or "commonly known" all count as NOT supported.
 
 Then read each segment's narration and decide whether it contains any factual statement (number, date,
-name, causal explanation) that is NOT covered by a supported claim. Opinions, questions and rhetorical
-lines are fine.
+name, causal explanation) that is NOT covered by a supported claim. Opinions, questions, rhetorical
+lines and hypothetical "imagine..." scenarios that state no specific number, date or name are fine.
 
 Return JSON only:
 {
