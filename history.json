@@ -214,6 +214,25 @@
       "clip_ids": [],
       "publish_at": "2026-11-24T13:00:00.000Z",
       "created_at": "2026-11-24T08:28:05+00:00"
+    },
+    {
+      "run_id": "45575660343-1",
+      "video_id": "mKFRiBtBTFo",
+      "url": "https://youtube.com/shorts/mKFRiBtBTFo",
+      "title": "The Jet-Powered Biplane That Was Too Slow",
+      "topic": "The Jet-Powered Agricultural Biplane Explores how a Soviet crop duster uniquely used a jet engine on a biplane frame, creating the slowest jet in aviation history.",
+      "style": {
+        "hook_type": "surprising number: open with a startling statistic from the sources",
+        "structure": "mini story: a concrete moment that reveals how the thing works",
+        "caption_style": "single_word",
+        "palette": "mint",
+        "thumbnail_layout": "center_outline",
+        "hook_overlay": true,
+        "voice": "en-US-EmmaNeural"
+      },
+      "clip_ids": [],
+      "publish_at": "2026-11-25T13:00:00.000Z",
+      "created_at": "2026-11-25T08:30:16+00:00"
     }
   ]
 }
