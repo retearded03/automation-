@@ -5,3 +5,4 @@ __pycache__/
 work/
 client_secret*.json
 .env
+uploads.json

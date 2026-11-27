@@ -1,10 +1,10 @@
 name: Daily Shorts
 
 on:
-  schedule:
-    # 07:00 UTC = 14:00 WIB. Video TIDAK langsung tayang: tiap video dijadwalkan (publishAt)
-    # ke slot jam ramai penonton AS yang diatur di config.yaml -> schedule.publish_slots.
-    - cron: "0 7 * * *"
+  # Jadwal otomatis DIMATIKAN (upload sekarang manual lewat upload_video.py).
+  # Untuk menyalakan lagi, kembalikan:
+  # schedule:
+  #   - cron: "0 7 * * *"   # 07:00 UTC = 14:00 WIB
   workflow_dispatch:
     inputs:
       dry_run:

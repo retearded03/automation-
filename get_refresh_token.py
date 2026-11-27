@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -26,6 +27,8 @@ def main() -> int:
     p.add_argument("--client-secret", help="path file JSON OAuth client (tipe Desktop app)")
     p.add_argument("--client-id", default=os.environ.get("YT_CLIENT_ID"))
     p.add_argument("--client-secret-value", default=os.environ.get("YT_CLIENT_SECRET"))
+    p.add_argument("--save", action="store_true",
+                   help="simpan token ke file .env di folder ini (untuk upload_video.py); token tidak dicetak")
     args = p.parse_args()
 
     if args.client_secret:
@@ -51,6 +54,14 @@ def main() -> int:
         print("Tidak ada refresh token. Cabut akses aplikasi di https://myaccount.google.com/permissions lalu ulangi.",
               file=sys.stderr)
         return 1
+    if args.save:
+        env_path = Path(__file__).resolve().parent / ".env"
+        old = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+        lines = [line for line in old if not line.startswith("YT_REFRESH_TOKEN=")]
+        lines.append(f"YT_REFRESH_TOKEN={creds.refresh_token}")
+        env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        print(f"\nRefresh token tersimpan di {env_path} (file ini tidak ikut ter-commit).")
+        return 0
     print("\n=== REFRESH TOKEN (simpan sebagai GitHub Secret YT_REFRESH_TOKEN) ===\n")
     print(creds.refresh_token)
     print("\nJangan bagikan token ini ke siapa pun.")
